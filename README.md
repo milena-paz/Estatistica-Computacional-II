@@ -18,7 +18,7 @@ Para fazer o qualquer termo virar uma Uniforme(0,1) é só dividir por p.
 E em sala, eles foram classificados com esses valores:
 
 - Gerador 1
-  - A= 6553 , B=0 , $x_0$ =2 , p= $2^{31}$
+  - A= 65539 , B=0 , $x_0$ =2 , p= $2^{31}$
 - Gerador 2
   - A=1664525 , B=1013904223 , $x_0$ = 2 , p= $2^{32}$
 - Gerador 3
