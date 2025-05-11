@@ -162,7 +162,7 @@ for(i in 1:10){
 }
 abline(h=seq(0,1,.1), v=seq(0,1,0.1),col="grey65")
 
-
+library(paletteer)
 # cores no grid usando paleta não-cinza ----
 #png(filename="colorido.png", width=600,height=600)
 paleta<-paletteer_c("grDevices::Blues",40,direction=-1)
@@ -174,7 +174,7 @@ pos<-seq(0,1,0.1)
 plot(0,type="n",xlim=0:1,ylim=0:1,xlab="",ylab="",asp=1)
 for(i in 1:10){
   for(j in 1:10){
-    Cor<- paleta[teste[i,j]] #exceto isso
+    Cor<- paleta[ordem[i,j]] #exceto isso
     rect(pos[i],pos[j],pos[i]+.1,pos[j]+.1, col=Cor)
   }
 }
