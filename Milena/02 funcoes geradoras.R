@@ -138,18 +138,19 @@ ks$p.value
 # -cores no grid quadrado
 ############
 
-#cores no grid usando hexbin
+# cores no grid usando hexbin ----
 library(hexbin)
 plot(hexbin(v3[(1:1E4)*2-1],v3[(1:1E4)*2],xbins=10,ybnds=c(0,1),xbnds=c(0,1)),
      xlab="Índices Ímpares",ylab="Índices Pares")
 
-#cores no grid usando R base ----
+# cores no grid usando R base ----
+par(mar=c(3,3,1,1))
 pos<-seq(0,1,0.1)
-plot(0,type="n",xlim=0:1,ylim=0:1,xlab="",ylab="")
+plot(0,type="n",xlim=0:1,ylim=0:1,xlab="",ylab="",asp=1)
 for(i in 1:10){
   for(j in 1:10){
     Cor<-paste0("grey",140-tabela[i,j])
-    rect(pos[i],pos[j],pos[i]+.1,pos[j]+.1, col=Cor,border=Cor)
+    rect(pos[i],pos[j],pos[i]+.1,pos[j]+.1, col=Cor)
   }
 }
 points(x=v3[seq(1,1E4,2)],y=v3[seq(2,1E4,2)],pch=".")
@@ -160,3 +161,29 @@ for(i in 1:10){
   }
 }
 abline(h=seq(0,1,.1), v=seq(0,1,0.1),col="grey65")
+
+
+# cores no grid usando paleta não-cinza ----
+#png(filename="colorido.png", width=600,height=600)
+paleta<-paletteer_c("grDevices::Blues",40,direction=-1)
+#gambiarra sem noção abaixo
+ordem <- matrix(as.numeric(factor(tabela)),nrow=10)
+#ctrl-c ctrl-v
+par(mar=c(3,3,1,1))
+pos<-seq(0,1,0.1)
+plot(0,type="n",xlim=0:1,ylim=0:1,xlab="",ylab="",asp=1)
+for(i in 1:10){
+  for(j in 1:10){
+    Cor<- paleta[teste[i,j]] #exceto isso
+    rect(pos[i],pos[j],pos[i]+.1,pos[j]+.1, col=Cor)
+  }
+}
+points(x=v3[seq(1,1E4,2)],y=v3[seq(2,1E4,2)],pch=".")
+pos<-seq(0.05,1,0.1)
+for(i in 1:10){
+  for(j in 1:10){
+    text(pos[i],pos[j],labels=tabela[i,j],cex=0.85,font=2)
+  }
+}
+abline(h=seq(0,1,.1), v=seq(0,1,0.1),col="grey30")
+#dev.off()
