@@ -35,7 +35,7 @@ geradora2 <- function(n,X_i){
   return(X/(2^31))
 }
 
-v<-geradora2(1E5,2)
+v<-geradora2(1E4,2)
 sum(duplicated(v))
 boxplot(v)
 
@@ -187,3 +187,12 @@ for(i in 1:10){
 }
 abline(h=seq(0,1,.1), v=seq(0,1,0.1),col="grey30")
 #dev.off()
+
+#GERANDO 1000 AMOSTRAS n=50 de cada gerador
+amostra<- list()
+amostra$ger1 <- replicate(1000,geradora2(50,2))
+amostra$ger2 <- replicate(1E3,geradora3(50,2))
+amostra$ger3 <- replicate(1E3, runif(50))
+
+mapply(hist,amostra,main=paste0("Densidade da amostra (geradora ",1:3,")"),
+       freq=F,xlab="x")
