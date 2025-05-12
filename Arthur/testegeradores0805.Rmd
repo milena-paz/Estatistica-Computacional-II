@@ -1,0 +1,129 @@
+---
+title: "teste_geradores0805"
+author: "Arthur"
+date: "2025-05-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 
+
+```{r}
+gen <- function(x.0 = 2, A = 103, B = 17,m = 10, inter = 5){
+  
+  u.0 <- x.0/m
+  x.vet <- numeric(inter)
+  u.vet <- numeric(inter)
+  x = x.0
+  x.vet[1] <- x.0
+  u.vet[1] <- u.0
+  
+  for(i in 1:inter){
+    xn <- (A*x + B)%%m
+    un <- xn/m
+    
+    x.vet[i] <- xn # arrumar outro jeito
+    u.vet[i] <- un # arrumar outro jeito
+    
+    x = xn
+    
+  }
+  return(u.vet)
+}
+
+```
+
+O objetivo é gerar 50 números 1000 vezes e testar a convergencia do teste ks
+
+
+
+## Teste
+
+Lembrando que:
+$H_0:$ x não pertence a distribuição uniforme
+$H_1:$ x pertence a distribuição uniforme
+
+```{r}
+
+
+p.g1 <- numeric(1000)
+p.g2 <- numeric(1000)
+p.g3 <- numeric(1000)
+
+for (i in 1:1000){
+  
+  g1 <- gen(x.0 = i, A =65539, B = 0, m = 2E31, inter = 50)
+
+  g2 <- gen(x.0 = i, A =1664525, B = 1013904223, m = 2E32, inter = 50)
+
+  g3 <- runif(50)
+  
+  p.g1[i] <- ks.test(g1, y = "punif")$p.value
+  p.g2[i] <- ks.test(g2, y = "punif")$p.value
+  p.g3[i] <- ks.test(g3, y = "punif")$p.value
+  
+  
+
+}
+
+
+
+plot_hist <- function(data, title, ylim = NULL) {
+  h <- hist(data, plot = FALSE)
+  colores <- ifelse(h$breaks < 0.5, "red", "blue") 
+  
+  if(is.null(ylim)) {
+    ylim <- c(0, max(h$density) * 1.2)
+  }
+  
+  plot(h, freq = F, col = colores, main = title, 
+       xlab = "Valor p", ylab = "Densidade", ylim = ylim, xlim = c(0,1))
+  abline(v = 0.5, lty = 2, lwd = 2)
+  
+  # Calcular proporções
+  prop_h0 <- mean(data < 0.5) * 100
+  prop_h1 <- mean(data >= 0.5) * 100
+  
+  text_y_pos <- ylim[2] * 0.95
+  text_y_pos_prop <- ylim[2] * 0.85  # Posição para as proporções (um pouco abaixo)
+  
+  # Adicionar rótulos H0/H1
+  text(x = 0.25, y = text_y_pos, labels = "H0", col = "red", cex = 1.5)
+  text(x = 0.75, y = text_y_pos, labels = "H1", col = "blue", cex = 1.5)
+  
+  # Adicionar proporções
+  text(x = 0.25, y = text_y_pos_prop, 
+       labels = paste0(round(prop_h0, 1), "%"), col = "red", cex = 1.2)
+  text(x = 0.75, y = text_y_pos_prop, 
+       labels = paste0(round(prop_h1, 1), "%"), col = "blue", cex = 1.2)
+}
+
+plot_hist(p.g1, "Histograma dos pvalores para o  gerador 1")
+
+
+plot_hist(p.g2, "Histograma dos pvalores para o gerador 2")
+
+
+plot_hist(p.g3, "Histograma dos pvalores para o gerador 3", ylim = c(0, 3))
+
+```
+
+### Estatísticas
+```{r}
+
+cat(paste0("Estatísticas para o gerador 1\n\n"))
+summary(p.g1)
+cat(paste0("\n\n"))
+
+cat(paste0("Estatísticas para o gerador 2\n\n"))
+summary(p.g2)
+cat(paste0("\n\n"))
+
+cat(paste0("Estatísticas para o gerador 3\n\n"))
+summary(p.g3)
+cat(paste0("\n\n"))
+
+```

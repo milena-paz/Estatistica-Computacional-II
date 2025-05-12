@@ -1,0 +1,61 @@
+---
+title: "aula2204"
+author: "Arthur Augusto"
+date: "2025-04-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# AULA 22/04/25
+
+## Soma de distribuições uniformes
+
+```{r}
+
+set.seed(333666)
+r1 <- runif(5000,0,1)
+r2<- runif(5000,0,1)
+
+
+r3 <- r1+r2
+
+hist(r3, freq = F, breaks = 50, ylim = c(0,1))
+segments(c(0,2),0 ,1 , 1)
+
+```
+
+## integrando uma gaussiana
+
+$$f(x) = \exp(-\frac{x²}{2})$$
+
+Transformar a integral em uma normal, da pra chegar em $\sqrt{2\pi}$.
+
+```{r}
+
+gau <- function(x) exp(-(x**2)/2)
+
+i <- integrate(gau, -Inf, Inf)
+
+i
+  
+```
+
+
+"dever": isolar x em 4(x - 1/2)³ = p
+
+## geração de numeros aleatorios pela inversa
+
+```{r}
+
+u <- runif(1E4)
+
+x <- qnorm(u)
+
+hist(x, freq=F)
+curve(dnorm,from =-4, to = 4, add = T)
+
+```
+

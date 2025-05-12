@@ -1,0 +1,306 @@
+---
+title: "aula0506"
+author: "Arthur Augusto"
+date: "2025-05-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# COmp 2 06/05
+
+## Distribuições e suas relaçoes
+
+#### Uniforme e exponencial
+
+relação entre ambas:
+
+$$exp = -\frac{log(U)}{\lambda}$$
+
+Sendo U = uniforme.
+
+#### exponencial para gama
+
+- a soma de exponenciais é uma gama, basta fazer $\sum f(x)$ sendo f(x) = $exp(\lambda)$.
+
+
+#### gama para exponencial 
+
+- usar a transformação $$\frac{X_1}{X_1 + X_2}$$.
+
+#### beta para uniforme
+
+- a beta com parametros $\alpha = 1$ e $\beta = 1$ é uma uniforme.
+
+
+## geradores congruenciais 
+
+
+$$X_{n+1} = (AX_n + B)\mod(m)$$
+$$U_n = \frac{X_n}{m}$$
+ - $X_o$: valor inicial.
+ - $X_o$ pertence a {0,1,..,m-1}.
+ - A,B: números "grandes".
+ 
+ 
+#### aplicação(exemplo)
+
+m = 10
+A = 103
+B = 17
+$X_0$ = 2
+
+```{r}
+m = 10
+A = 103
+B = 17
+x.0 = 2
+
+x.1 = (103*2 + 17)%%10
+
+f1 <- function(x.0 = 2, A = 103, B = 17,m = 10, inter = 5){
+  
+  u.0 <- x.0/m
+  x.vet <- c(x.0)
+  u.vet <- c(u.0)
+  x = x.0
+  
+  for(i in 1:inter){
+    xn <- (A*x + B)%%10
+    un <- xn/m
+    
+    x.vet <- c(x.vet, xn)
+    u.vet <- c(u.vet, un)
+    
+    x = xn
+    
+  }
+  return(list("u" = u.vet,
+              "x" = x.vet))
+}
+
+t <- f1(inter = 350)
+
+plot(t$u, type = "l")
+
+```
+
+- Nao utilizar c(u.vet,un) pratica ruim!!! sempre inicializar com u.vet <- numeric(n), o codigo funciona mas é uma pratica ruim. Se eu sei o tamanho do vetor criar o vetor dinamicamente é uma ideia ruim, economiza tempo e memoria criar o vetor com tamanho definido, usando numeric(n).
+
+corrigindo:
+```{r}
+f1.corrigida <- function(x.0 = 2, A = 103, B = 17,m = 10, inter = 5){
+  
+  u.0 <- x.0/m
+  x.vet <- numeric(inter)
+  u.vet <- numeric(inter)
+  x = x.0
+  x.vet[1] <- x.0
+  u.vet[1] <- u.0
+  
+  for(i in 1:inter){
+    xn <- (A*x + B)%%m
+    un <- xn/m
+    
+    x.vet[i] <- xn # arrumar outro jeito
+    u.vet[i] <- un # arrumar outro jeito
+    
+    x = xn
+    
+  }
+  return(list("u" = u.vet,
+              "x" = x.vet))
+}
+
+```
+- como usar familia apply p/ evitar o for?
+
+- montar c/ recursão
+
+
+#### funçâo feita pelo professor:
+
+```{r}
+m = 2E31
+A = 65539
+b = 0
+
+t2 <- f1.corrigida(x.0 = 2, A =65539, B = 0, m = 2E31, inter = 1E4)
+
+plot(t2$u)
+
+sum(duplicated(t2$u))
+
+obj <- hist(t2$u, breaks = 100, freq = T)
+
+mean(obj$counts)
+boxplot(obj$counts)
+```
+
+proposta 2:
+
+```{r}
+t3 <- f1.corrigida(x.0 = 2, A =1664525, B = 1013904223, m = 2E32, inter = 1E4)
+
+sum(duplicated(t3$u))
+
+obj2 <- hist(t3$u, breaks = 100, freq = T)
+
+mean(obj2$counts)
+boxplot(obj2$counts, obj$counts)
+```
+proposta 3:
+
+```{r}
+set.seed(666)
+t4 <- runif(1E4)
+
+sum(duplicated(t4))
+
+obj3 <- hist(t4, breaks = 100, freq = T)
+
+mean(obj3$counts)
+boxplot(obj3$counts, obj2$counts, obj$counts)
+```
+proposta: usar a funçao cut() para fazer as contagens
+ 
+- gerar 20000 numeros, com o mesmo x.0.
+
+- gradear em 100 sub-quadrados, 10 em cada eixo.
+
+- contar a quantidade de pontos em cada sub-quadrado.
+
+```{r}
+
+vetor <- runif(2E4)
+
+par <-(1:10000)*2
+impar <- (1:10000)*2 - 1
+
+plot(vetor[impar], vetor[par], pch = ".")
+abline(h = (0:10)/10, v = (0:10)/10, col = "gray20")
+```
+
+```{r}
+set.seed(666)
+vetor <- runif(2E4)
+             
+
+par <-(1:10000)*2
+impar <- (1:10000)*2 - 1
+
+plot(vetor[impar], vetor[par], pch = ".")
+abline(h = (0:10)/10, v = (0:10)/10, col = "gray20")
+```
+
+ 
+funçao cut:
+
+```{r}
+X <- vetor[impar]
+Y <- vetor[par]
+
+cutX <- cut(x =X, breaks = (0:10)/10, include.lowest = TRUE)
+cutY <- cut(x = Y, breaks = (0:10)/10, include.lowest = TRUE)
+
+tabela <- table(cutX, cutY)
+tabela
+
+plot(vetor[impar], vetor[par], pch = ".")
+abline(h = (0:10)/10, v = (0:10)/10, col = "gray20")
+
+for (i in 0:9){
+
+  for(j in 0:9){
+    i.count <- i/10
+    j.count <- j/10
+    text(x = 0.05 +i.count, y = 0.05 + j.count, labels = tabela[i + 1,j + 1], cex = 0.85, font = 2)
+  }
+}
+
+```
+
+pintar cada quadrado
+ 
+ 
+```{r}
+boxplot(tabela)
+```
+ 
+ 
+### teste qui quadrado
+
+```{r}
+eij <- 100
+
+x2 <- sum((tabela - 100)**2/100)
+x2
+
+```
+
+
+### ecdf
+
+```{r}
+set.seed(666)
+
+vetor2 <- runif(1E3)
+
+empirica <- ecdf(vetor2)
+
+plot(empirica, main = "Distribuiçao empirica do runif")
+curve(punif, from = 0, to = 1, add = T, col = "blue", lwd = 2)
+```
+
+#### kolmogorv smirnof
+
+```{r}
+
+ks.test(x = vetor2, y = "punif")
+```
+```{r}
+set.seed(666)
+vetor.3 <- runif(50)
+
+empirica.2 <- ecdf(vetor.3)
+
+plot(empirica.2, main = "Distribuiçao empirica do runif")
+curve(punif, from = 0, to = 1, add = T, col = "blue", lwd = 2)
+
+obj3 <- ks.test(x = vetor.3, y = "punif")
+
+obj3$p.value
+
+
+```
+
+- repetindo 1000 vezes a geraçao de 50 valores da unif nos geradores.
+
+- fazer os histogramas dos resultados.
+
+- cores no grid do quadro.
+
+geradores:
+
+```{r}
+
+g1 <- f1.corrigida(x.0 = 2, A =65539, B = 0, m = 2E31, inter = 1E4)
+
+g2 <- f1.corrigida(x.0 = 2, A =1664525, B = 1013904223, m = 2E32, inter = 1E4)
+
+g3 <- runif(1E4) 
+
+
+
+```
+
+
+
+
+
+ 
+ 
+ 
+
