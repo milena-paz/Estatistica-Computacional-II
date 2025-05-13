@@ -326,12 +326,65 @@ qqline(amostra)
 {r}
 amostra2 <- runif (1000)
 acf(amostra2)
+```
 
+  Método da Inversa;
 
+-   Método da Convolução:
 
+    -   vamos usar somas de variaveis aleatorias para chegar em outras
+        distribuições.
+
+-   Método da transformação;
+
+-   Método da aceitação/rejeição;
+
+```{r}
+U <- runif(12)
+Ustar <- U-0.5
+FN <- ecdf(Ustar)
+plot(FN)
+abline(0.5,1)
+```
+    gerar 12 números aleatórios de uma uniforme padrão: U \<- runif (12)
+
+-   calcular U\*\~Uniform(-0.5,0.5): U\* - U - 0.5
+
+-   determinar z\*-sum(u\*)
+
+```{r}
+ene <- 1e3
+matriz <- matrix(runif(ene*12)-0.5, ncol = 12)
+matriz
 
 ```
- 
+
+```{r}
+
+z.star <- apply (matriz, 1 , sum)
+z.star
+```
+
+```{r}
+f.star <- ecdf(z.star)
+plot (f.star)
+curve(pnorm, from = -4, to = 4, add = T)
+```
+
+**teste de Kolmogorov-Smirnov (KS)**
+
+```{r}
+ks.test(z.star, "pnorm")
+```
+
+Calculo dos valores teoricos de uma normal padrão.
+
+```{r}
+quantis <- qnorm (p = (1:10)/10)
+cut.star <- cut(x = z.star, breaks = quantis)
+conta.star <- table (cut.star)
+```
+
  
  
 
