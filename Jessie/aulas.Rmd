@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# COmp 2 06/05
+#06/05
 
 ## Distribuições e suas relaçoes
 
@@ -303,6 +303,8 @@ ks.test(vetor3, y ="punif")
 
 *repetir mil vezes a geração de 50 valores da uniforme
 *fazer histograma de densidade dos resultados
+
+#13/05
 
 ```{r}
 amostra <- rnorm(30)
