@@ -162,20 +162,22 @@ for(i in 1:10){
 }
 abline(h=seq(0,1,.1), v=seq(0,1,0.1),col="grey65")
 
-library(paletteer)
+
 # cores no grid usando paleta não-cinza ----
+#library(paletteer)
 #png(filename="colorido.png", width=600,height=600)
-paleta<-paletteer_c("grDevices::Blues",40,direction=-1)
-#gambiarra sem noção abaixo
-ordem <- matrix(as.numeric(factor(tabela)),nrow=10)
+#paleta<-paletteer_c("grDevices::Blues",40,direction=-1)
+
+## usando a função colorRampPalette do r graphics
+paleta <- colorRampPalette(c("#006EF0","white","#C8E348"))(55)
 #ctrl-c ctrl-v
-par(mar=c(3,3,1,1))
+par(mar=c(3,3,1,1),bg="grey80")
 pos<-seq(0,1,0.1)
 plot(0,type="n",xlim=0:1,ylim=0:1,xlab="",ylab="",asp=1)
 for(i in 1:10){
   for(j in 1:10){
-    Cor<- paleta[ordem[i,j]] #exceto isso
-    rect(pos[i],pos[j],pos[i]+.1,pos[j]+.1, col=Cor)
+    Cor<- abs(tabela[i,j]-74) 
+    rect(pos[i],pos[j],pos[i]+.1,pos[j]+.1, col=paleta[Cor])
   }
 }
 points(x=v3[seq(1,1E4,2)],y=v3[seq(2,1E4,2)],pch=".")
