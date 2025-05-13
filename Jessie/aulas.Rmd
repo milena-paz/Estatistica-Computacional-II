@@ -385,6 +385,11 @@ cut.star <- cut(x = z.star, breaks = quantis)
 conta.star <- table (cut.star)
 ```
 
+*opção alternativa + elegante
+
+z.star <- replicate (ene, sum(runif(12)-1/2)
+
+
  
  
 
