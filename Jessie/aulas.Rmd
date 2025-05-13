@@ -301,12 +301,32 @@ curve(punif, from = 0, to = 1, add = T, col = "blue", lwd =2)
 ks.test(vetor3, y ="punif")
 ```
 
-
-
 *repetir mil vezes a geração de 50 valores da uniforme
 *fazer histograma de densidade dos resultados
 
 ```{r}
+amostra <- rnorm(30)
+qqnorm(amostra)
+qqline(amostra)
+```
+
+# Equidistribuição: 
+   usa-se o teste x²; 
+   comparação com a distribuição exata;
+   usamos o teste de Kolmogorov-Smirnov
+
+# periodicidade
+   usa-se repetição;
+   correlação serial; (também conhecida como auto correlação)
+
+# ACF (Função de autocorrelação): A função de autocorrelação calcula a correlação entre os valores de uma série temporal em dois momentos no tempo (em uma defasagem de lag).
+    Isso ajuda a identificar padrões ou ciclos em dados temporais, como se um valor de uma variável em um certo momento estiver relacionado aos valores anteriores.
+
+```
+{r}
+amostra2 <- runif (1000)
+acf(amostra2)
+
 
 
 
