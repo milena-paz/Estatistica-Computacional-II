@@ -140,7 +140,7 @@ ks$p.value
 
 # cores no grid usando hexbin ----
 library(hexbin)
-plot(hexbin(v3[(1:1E4)*2-1],v3[(1:1E4)*2],xbins=10,ybnds=c(0,1),xbnds=c(0,1)),
+plot(hexbin(v3[(1:1E4)*2-1],v3[(1:1E4)*2],xbins=50,ybnds=c(0,1),xbnds=c(0,1)),
      xlab="Índices Ímpares",ylab="Índices Pares")
 
 # cores no grid usando R base ----
@@ -198,3 +198,38 @@ amostra$ger3 <- replicate(1E3, runif(50))
 
 mapply(hist,amostra,main=paste0("Densidade da amostra (geradora ",1:3,")"),
        freq=F,xlab="x")
+
+## QQPLOT ----
+amostra<- rnorm(30)
+qqnorm(amostra)
+qqline(amostra)
+
+## AUTOCORRELAÇÃO ----
+#periodicidade
+amostra<- runif(1E3)
+acf(amostra)
+
+
+## TCL ----
+# U*~(-0.5,0.5)
+set.seed(666)
+amostras <- replicate(1E3,runif(12)-0.5)
+Z.star <- apply(amostras,2,sum)
+
+Fn<- ecdf(Z.star)
+plot(Fn)
+curve(pnorm,add=T, from=-4,to=4,col="red")
+ks.test(Z.star,pnorm)
+
+
+(quantis <- qnorm(p=(0:10)/10))
+corte <- cut(Z.star,breaks= quantis)
+(tabela.star <- table(corte))
+
+1-pchisq(sum((tabela.star-100)**2/100),df=10)
+
+#fazer aquele grafico dos pontinhos
+#desenhar no plano onde esta 50, 95, 99% da densidade de Zstar com elipses
+x<- sample(1:1000,size=500)
+y<- seq(1,1000,1)[!(1:1000 %in% x)]
+plot(Z.star[x],Z.star[y],pch=19)
