@@ -3,16 +3,6 @@ source("funcoes rng.R")
 
 pontos <- geradornormalbivariada(1e5,12,meu=F,intervalo=c(-sqrt(3),sqrt(3)))
  
-animation <- function(n,frames,spf,cores,...)
-{
-  for(i in 1:n)
-  {
-    plot(pontos,asp=1)
-    parametric.draw(c(0,2*pi),circle(raio.quantil(0.99,...)),...)
-    legend(legend = ,x=-20,y=8.5)
-  }
-}
-
 animation <- function(n=0.999,frames,spf,...)
 {
   op <- par(no.readonly = T)
