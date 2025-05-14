@@ -41,3 +41,28 @@ acumuladaempirica <- function(valores,...)
   plot(ecdf(valores),lwd=2,...)
   curve(punif,col="red",add=T,lwd=2,...)
 }
+
+parametric.draw <- function(range,funct,precision=100,...)
+{
+  points <- seq(from=range[1],to=range[2],length.out=precision)
+  coords <- list(x = funct$x(points), y = funct$y(points))
+  lines(coords$x,coords$y,...)
+}
+
+circle <- function(r) list(x = function(t) r*cos(t), y = function(t) r*sin(t))
+
+geradornormalbivariada <- function(qtd,k,intervalo=c(0,1),...)
+{
+  valores <- replicate(qtd,sum(runif(k,min=intervalo[1],max=intervalo[2])))
+  return(pareador(valores))
+}
+
+raio.quantil <- function(quantil,desvio)
+{
+  return(desvio*sqrt(-2*log(1-quantil)))
+}
+
+quantilempirico <- function(lista,raio)
+{
+  sum((lista$x^2 + lista$y^2 <= raio^2))
+}
