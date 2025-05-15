@@ -51,7 +51,7 @@ parametric.draw <- function(range,funct,precision=100,...)
 
 circle <- function(r) list(x = function(t) r*cos(t), y = function(t) r*sin(t))
 
-geradornormalbivariada <- function(qtd,k,intervalo=c(0,1),...)
+antigo.geradornormalbivariada <- function(qtd,k,intervalo=c(0,1),...)
 {
   valores <- replicate(qtd,sum(runif(k,min=intervalo[1],max=intervalo[2])))
   return(pareador(valores))
@@ -65,4 +65,16 @@ raio.quantil <- function(quantil,desvio)
 quantilempirico <- function(lista,raio)
 {
   sum((lista$x^2 + lista$y^2 <= raio^2))
+}
+
+geradornormalbivariada <- function(n)
+{
+  primeiro <- runif(n)
+  
+  segundo <- runif(n)
+  
+  valores <- list(x=sqrt(-2*log(primeiro))*cos(2*pi*segundo),
+                  y=sqrt(-2*log(primeiro))*sin(2*pi*segundo))
+  
+  return(valores)
 }
