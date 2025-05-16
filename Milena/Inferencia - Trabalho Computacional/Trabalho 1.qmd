@@ -1,0 +1,64 @@
+---
+title: "EST077 - Trabalho Computacional I"
+author: "Milena Paz Freitas"
+format: html
+editor: visual
+lang: "pt-BR"
+self-contained: true
+---
+
+# Distribuição da Estatística Média Amostral ( $\bar{X}$ )
+
+### 1. Geração das amostras
+
+Gerando 1000 amostras para diferentes tamanhos $n$, provenientes de uma distribuição $X\sim \text{N}(10,2)$.
+
+```{r}
+amostra <- list()
+#n=20
+amostra$n20 <- replicate(1E3, rnorm(20,10,sqrt(2)) )
+#n=30
+amostra$n30 <- replicate(1E3, rnorm(30,10,sqrt(2)) )
+#n=50
+amostra$n50 <- replicate(1E3, rnorm(50,10,sqrt(2)) )
+#n=200 
+amostra$n200 <- replicate(1E3, rnorm(200,10,sqrt(2)) )
+#n=500
+amostra$n500 <- replicate(1E3, rnorm(500,10,sqrt(2)) )
+
+```
+
+### 2. $\bar{X}$ e sua distribuição
+
+```{r}
+#calculando a média de cada amostra, para cada tamanho n
+medias<- lapply(amostra,apply, 2, mean)
+
+#Fazendo um histograma p/ cada n, estatisticas descritivas e teste da normalidade
+
+#(A) HISTOGRAMA ----
+par(mfrow=c(3,2),mar=c(4.1,4.1,2.1,1))
+histogramas <- mapply(hist,medias, freq=F, breaks=25, main=paste("n=",c(20,30,50,200,500)),
+       xlab= expression(bar(X)))
+```
+
+```{r}
+#(B) ESTATÍSTICA DESCRITIVA ----
+#calculando a média de Xbar (para cada n)
+M <- sapply(medias,mean)
+#comparando com o valor teórico (mu=10)
+abs(M-10)
+
+#calculando o desvio padrão S de Xbar (p/ cada n)
+dpXbarTeoricos <- sqrt(2*(1/c(20,30,50,200,500)))
+dpMedias <- sapply(medias, sd)
+#comparando com os valores teóricos (Var(Xbar)=sigma²/n)
+abs(dpMedias- dpXbarTeoricos)
+
+#(C) TESTE DE NORMALIDADE KOMOLGOROV-SMIRNOV ----
+lapply(list("n20"=20,"n30"=30,"n50"=50,"n200"=200,"n500"=500), function(i){
+  ks.test(medias[[paste0("n",i)]], pnorm, mean=10, sd=sqrt(2/i) )
+})
+```
+
+      Pelos histogramas `(A)`, podemos ver que a densidade de $\bar{X}$ é como de uma normal para todos os valores de $n$. Além disso, em `(B)`, temos que os valores empíricos da esperança e desvio padrão da Média Amostral são muito próximos dos teóricos (assim comprovando os mesmos); o que pode ser ainda mais reforçado pelos resultados do teste de normalidade `(C)` que são p-valores insuficientes para rejeitar a hipótese nula (de que $\bar{X} \sim \text{N}(10,\frac{2}{n})$).
