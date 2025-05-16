@@ -31,3 +31,5 @@ qR(.5) |> draw.circle(cor="blue")
 qR(.95) |> draw.circle(cor="orange")
 #p/ 99%:
 qR(.99) |> draw.circle(cor="magenta")
+
+# no caso de normais não-padrão o raio será proporcional ao desvio padrão
