@@ -1,16 +1,9 @@
 #População Normal, media=10 e variancia=2.
 #Gerar 1000 amostras para:
 amostra <- list()
-#n=20
-amostra$n20 <- replicate(1E3, rnorm(20,10,sqrt(2)) )
-#n=30
-amostra$n30 <- replicate(1E3, rnorm(30,10,sqrt(2)) )
-#n=50
-amostra$n50 <- replicate(1E3, rnorm(50,10,sqrt(2)) )
-#n=200 
-amostra$n200 <- replicate(1E3, rnorm(200,10,sqrt(2)) )
-#n=500
-amostra$n500 <- replicate(1E3, rnorm(500,10,sqrt(2)) )
+ene <- c(20,50,100,200,500)
+for(n in ene)
+  amostra[[paste0("n",n)]] <- replicate(1E3, rnorm(n,10,sqrt(2)) )
 
 #Para cada amostra gerada, calcular a media amostral
 medias<- lapply(amostra,apply, 2, mean)
