@@ -36,19 +36,23 @@ plotar.tabela <- function(pontos,...)
   }
 }
 
+#compara a acumulada empirica de alguns valores com a acum. teorica da uniforme
 acumuladaempirica <- function(valores,...)
 {
   plot(ecdf(valores),lwd=2,...)
   curve(punif,col="red",add=T,lwd=2,...)
 }
 
+#desenha qualquer curva parametrica dada por funct, onde o parametro vai de range[1] a range[2]
 parametric.draw <- function(range,funct,precision=100,...)
 {
+  #faz "precision" linhas para aproximar a curva
   points <- seq(from=range[1],to=range[2],length.out=precision)
   coords <- list(x = funct$x(points), y = funct$y(points))
   lines(coords$x,coords$y,...)
 }
 
+#Funcao de um circulo q pode ser colocada no parametric.draw
 circle <- function(r) list(x = function(t) r*cos(t), y = function(t) r*sin(t))
 
 antigo.geradornormalbivariada <- function(qtd,k,intervalo=c(0,1),...)
@@ -57,24 +61,27 @@ antigo.geradornormalbivariada <- function(qtd,k,intervalo=c(0,1),...)
   return(pareador(valores))
 }
 
+#funcao quantilica do raio da normal bivariada
 raio.quantil <- function(quantil,desvio)
 {
   return(desvio*sqrt(-2*log(1-quantil)))
 }
 
+#Calcula quantos pontos estao dentro de algum raio especifico (se dividir pela quantidade de pontos voce tem o quantil daquele raio)
 quantilempirico <- function(lista,raio)
 {
   sum((lista$x^2 + lista$y^2 <= raio^2))
 }
 
-geradornormalbivariada <- function(n)
+#Algoritmo de boxmuller
+geradornormalbivariada <- function(n,sigma=1)
 {
   primeiro <- runif(n)
   
   segundo <- runif(n)
   
-  valores <- list(x=sqrt(-2*log(primeiro))*cos(2*pi*segundo),
-                  y=sqrt(-2*log(primeiro))*sin(2*pi*segundo))
+  valores <- list(raio.quantil(primeiro,sigma)*cos(2*pi*segundo),
+                  y=raio.quantil(primeiro,sigma)*sin(2*pi*segundo))
   
   return(valores)
 }
