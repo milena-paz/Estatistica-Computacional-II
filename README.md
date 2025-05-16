@@ -4,6 +4,21 @@
 Nela, vocês podem compartilhar suas notas de aula, trabalhos e exercícios.
 Se quiserem, podem usar o repositório para outras disciplinas, desde que esteja devidamente organizado.
 Aproveitem! :)
+## Box muller
+dado que: 
+
+$$
+\Huge U_1,U_2 \sim Unif(0,1)
+$$
+
+e que:
+
+$$
+\Huge Z_1 = \sqrt{-2ln(U_1)} cos(2\pi U_2),Z_2 = \sqrt{-2ln(U_1)} sen(2\pi U_2)
+$$
+
+entao: $\large Z_1$ e $\large Z_2$ vao seguir uma normal bivariada
+
 ## Gerador 
 O gerador que está sendo usado é esse:
 
