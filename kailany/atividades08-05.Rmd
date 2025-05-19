@@ -1,0 +1,117 @@
+---
+title: "Atividades da aula do dia 08/05"
+author: "Kailany Aline"
+date: "2025-05-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Função para gerador congruencial linear
+```{r}
+# Função que implementa o gerador congruencial linear
+# x0: valor inicial (semente)
+# A, B, m: parâmetros do gerador
+# n: quantidade de números a serem gerados
+# Retorna um vetor de números uniformes entre 0 e 1
+
+gerador_congruencial <- function(x0, A, B, m, n){
+  x <- numeric(n)      # vetor para armazenar os valores X
+  u <- numeric(n)      # vetor para armazenar os valores U (normalizados)
+  x[1] <- x0
+  u[1] <- x0 / m
+  for(i in 2:n){
+    x[i] <- (A * x[i - 1] + B) %% m   # fórmula do gerador
+    u[i] <- x[i] / m                  # normaliza para [0,1]
+  }
+  return(u)  # retorna vetor de valores uniformes
+}
+```
+
+## Gerando 100 amostras de 50 valores de cada gerador e fazendo histogramas
+```{r}
+set.seed(666)  # Semente para reprodutibilidade
+
+# Gerando 100 amostras de 50 valores cada com os dois geradores
+# Gerador 1: A = 65539, B = 0, m = 2^31, x0 = 2
+amostras1 <- replicate(100, gerador_congruencial(2, 65539, 0, 2^31, 50))
+# Gerador 2: A = 1664525, B = 1013904223, m = 2^32, x0 = 2
+amostras2 <- replicate(100, gerador_congruencial(2, 1664525, 1013904223, 2^32, 50))
+
+# Convertendo as matrizes para vetores
+valores1 <- as.vector(amostras1)
+valores2 <- as.vector(amostras2)
+
+# Plotando histogramas lado a lado para comparar distribuições
+par(mfrow = c(1, 2))
+hist(valores1, breaks = 20, col = "skyblue", main = "Histograma - Gerador 1", xlab = "Valores")
+hist(valores2, breaks = 20, col = "salmon", main = "Histograma - Gerador 2", xlab = "Valores")
+par(mfrow = c(1, 1))
+```
+
+## Teste de Kolmogorov-Smirnov para U(0,1)
+```{r}
+# Teste KS para verificar aderência à distribuição uniforme
+ks1 <- ks.test(valores1, "punif")
+ks2 <- ks.test(valores2, "punif")
+
+# Exibindo os resultados dos testes KS
+ks1
+ks2
+```
+
+## Visualização dos pares (x,y) no quadrado [0,1]x[0,1] com cores por frequência
+```{r}
+n_pares <- 10000  # número de pares (x,y) a serem gerados
+
+# Gerando 2*n valores com cada gerador para formar os pares (x,y)
+val1 <- gerador_congruencial(2, 65539, 0, 2^31, 2 * n_pares)
+val2 <- gerador_congruencial(2, 1664525, 1013904223, 2^32, 2 * n_pares)
+
+# Separando os pares (x,y) a partir da sequência de valores gerados
+x1 <- val1[seq(1, 2 * n_pares, by = 2)]  # posições ímpares
+y1 <- val1[seq(2, 2 * n_pares, by = 2)]  # posições pares
+
+x2 <- val2[seq(1, 2 * n_pares, by = 2)]
+y2 <- val2[seq(2, 2 * n_pares, by = 2)]
+
+# Criando divisões no intervalo [0,1] para montar o grid 10x10
+breaks <- seq(0, 1, length.out = 11)  # define 10 divisões
+
+# Cortando os valores em intervalos e criando tabelas de frequência para Gerador 1
+grid_x1 <- cut(x1, breaks, include.lowest = TRUE)
+grid_y1 <- cut(y1, breaks, include.lowest = TRUE)
+tabela1 <- table(grid_x1, grid_y1)
+
+# Para Gerador 2
+grid_x2 <- cut(x2, breaks, include.lowest = TRUE)
+grid_y2 <- cut(y2, breaks, include.lowest = TRUE)
+tabela2 <- table(grid_x2, grid_y2)
+
+library(ggplot2)  # pacote para gráficos avançados
+
+# Grid 10x10 - Gerador 1
+# Convertendo tabela em data frame e renomeando colunas para uso no ggplot
+heatmap1 <- as.data.frame(tabela1)
+colnames(heatmap1) <- c("X", "Y", "Freq")
+
+# Criando mapa de calor com as frequências para Gerador 1
+ggplot(heatmap1, aes(x = Y, y = X, fill = Freq)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(title = "Grid 10x10 - Gerador 1", x = "Y", y = "X") +
+  theme_minimal()
+
+# Grid 10x10 - Gerador 2
+heatmap2 <- as.data.frame(tabela2)
+colnames(heatmap2) <- c("X", "Y", "Freq")
+
+# Criando mapa de calor com as frequências para Gerador 2
+ggplot(heatmap2, aes(x = Y, y = X, fill = Freq)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "red") +
+  labs(title = "Grid 10x10 - Gerador 2", x = "Y", y = "X") +
+  theme_minimal()
+```
