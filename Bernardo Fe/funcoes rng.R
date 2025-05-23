@@ -85,3 +85,40 @@ geradornormalbivariada <- function(n,sigma=1)
   
   return(valores)
 }
+
+#gera pontos dentro de um quadrado -1<=x<=1 , -1<=y<=1
+#guarda e conta quando x^2+y^2<=1
+geradorcirculo <- function(n=1)
+{
+  #qtd é o contador pra guardar os pontos no vetor z1 e z2
+  qtd <- 0
+  #qtd2 é o contador de vezes que o código rodou até gerar os n pontos
+  qtd2 <- 0
+  #criando z1 e z2
+  z1 <- numeric(n)
+  z2 <- numeric(n)
+  while(qtd<n)
+  {
+    v1 <- runif(1,-1,1)
+    v2 <- runif(1,-1,1)
+    s <- v1^2 + v2^2
+    if(s<1)
+    {
+      #nesse if o qtd só aumenta quando o s for menor que 1, e então
+      #guarda os pontos da normal em z1 e z2 na posição "qtd" (contador)
+      qtd <- qtd + 1
+      z1[qtd] <- sqrt(-2*log(s)/s)*v1
+      z2[qtd] <- sqrt(-2*log(s)/s)*v2
+    }
+    #qtd2 conta quantas vezes esse while rodou, caso s for maior q um, esse contador aumenta
+    #mas o qtd não, já o while só para quando o qtd chegar em n
+    qtd2 <- qtd2 + 1
+  }
+  print(paste("Esse código rodou",qtd2,"vezes"))
+  print(paste("Mas encontrou",n,"pontos"))
+  print(paste("A proporção é:",n/qtd2))
+  #lista com os pontos da normal, a quantidade de vezes que rodou, e a proporção
+  #do total com a quantidade
+  resposta <- list(pontos=matrix(c(z1,z2),nrow=n,byrow = F),quantidade = qtd2,proporcao = n/qtd2)
+  return(resposta)
+}
