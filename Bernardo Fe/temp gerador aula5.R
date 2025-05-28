@@ -50,11 +50,9 @@ modulo <- function(x)
   return(2*exp(-x^2/2)/sqrt(2*pi))
 }
 
-
-
-aceitacaorejeicao <- function(M=1.3154,ponto,Unif,func1=modulo,func2=dexp,...)
+aceitacaorejeicao <- function(M=1.3154,ponto,U,f=modulo,g=dexp,...)
 {
-  return(Unif*func1(ponto)<=M*func2(ponto,...))
+  return(U<=f(ponto)/(M*g(ponto,...)))
 }
 
 dummy <- F
@@ -62,25 +60,25 @@ Unif1 <- 0
 
 pontos <- numeric(10000)
 
+contador <- 0
 
-for(i in 1:100)
+for(i in 1:10000)
 {
   dummy <- F
   while(!dummy)
   {
     Unif1 <- runif(1)
-    ponto.random <- runif(1)
-    dummy <- aceitacaorejeicao(ponto=ponto.random,Unif = Unif1,func2 = dbeta,M=2.4576,shape1=2,shape2=5)
+    ponto.random <- -log(runif(1))
+    dummy <- aceitacaorejeicao(ponto=ponto.random,U = Unif1)
+    contador <- contador + 1
   }
-pontos[i] <- ponto.random
+  pontos[i] <- ponto.random
 }
+print(paste("o codigo rodou",contador,"vezes"))
 
-hist(pontos,freq=F,breaks=50,ylim=c(0,1.35))
-
-
+hist(pontos,freq=F,breaks=50,ylim=c(0,1.35),xlim=c(0,4))
 curve(modulo,from=0,to=8,add=T,lwd=2)
 curve(1.3154*exp(-x),from=0,to=8,add=T,col="red",lwd=2)
+curve(exp(-x),from=0,to=8,add=T,col="blue",lwd=2)
 abline(v=1)
 abline(h=modulo(1))
-
-U2 <- runif(1000)
