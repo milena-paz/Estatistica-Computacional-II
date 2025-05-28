@@ -122,3 +122,32 @@ geradorcirculo <- function(n=1)
   resposta <- list(pontos=matrix(c(z1,z2),nrow=n,byrow = F),quantidade = qtd2,proporcao = n/qtd2)
   return(resposta)
 }
+
+aceitacaorejeicao <- function(M=1.3154,ponto,f=modulo,g=dexp,...)
+{
+  return(runif(1)<=f(ponto,...)/(M*g(ponto)))
+}
+
+gerador.aceitacao <- function(n,maximo,f_x,g_y,rg_y,...)
+{
+  dummy <- F
+  Uni <- 0
+  pontos <- numeric(n)
+  contador <- 0
+  
+  for(i in 1:n)
+  {
+    dummy <- F
+    while(!dummy)
+    {
+      ponto.random <- rg_y(1)
+      dummy <- aceitacaorejeicao(M=maximo,f=f_x,g=g_y,ponto=ponto.random,...)
+      contador <- contador + 1
+    }
+    pontos[i] <- ponto.random
+  }
+  print(paste("o codigo rodou",contador,"vezes"))
+  print(paste("mas gerou",n,"valores"))
+  print(paste("taxa de aproveitamente de ",round(100*n/contador,digits=3),"%",sep = ""))
+  return(pontos)
+}
