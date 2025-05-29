@@ -10,7 +10,7 @@ A base de gerar numeros aleatorios consiste em gerar uma sequencia pseudoaleator
 Para a sequencia pseudoaleatoria pode se usar esse algoritmo:
 
 $$
-\Huge x_{n+1} = (Ax_n+B)\quad mod \quad p
+\Huge x_{n+1} = (Ax_n+B)\mod p
 $$
 
 (mod é o operador modular, resto da divisão, o "%%")
@@ -50,7 +50,7 @@ $$
 O metodo do Box Muller diz que se as uniformes forem colocadas nessa formula, $\large Z_1$ e $\large Z_2$ vao seguir uma normal bivariada.
 
 $$
-\Huge Z_1 = \sqrt{-2ln(U_1)} cos(2\pi U_2),Z_2 = \sqrt{-2ln(U_1)} sen(2\pi U_2)
+\Huge Z_1 = \sqrt{-2\ln(U_1)} \cos(2\pi U_2) \text{,} \quad Z_2 = \sqrt{-2\ln(U_1)} \sin(2\pi U_2)
 $$
 
 ## Aceitacao e rejeicao
