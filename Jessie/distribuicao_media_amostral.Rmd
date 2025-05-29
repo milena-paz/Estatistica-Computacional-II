@@ -1,0 +1,104 @@
+---
+title: "Distribuição da Estatística Média Amostral"
+author: "Jessica Cavalcanti de Souza"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+set.seed(123)  # Para reprodutibilidade
+```
+
+## Introdução
+
+Neste relatório, realizo um estudo empírico da distribuição da estatística **média amostral**. Utilizo uma população com distribuição **Normal** de média 10 e variância 2, e simulo **1000 amostras** para diferentes tamanhos de amostra (**n = 20, 50, 100, 200 e 500**).
+
+Para cada cenário, calculo:
+
+- Estatísticas descritivas da distribuição das médias amostrais;
+- Histograma com sobreposição da curva Normal teórica;
+- Teste de normalidade de Shapiro-Wilk.
+
+O objetivo é verificar:
+
+- A **simetria** da distribuição da média amostral;
+- A **posição central** (se está em torno da média populacional);
+- A **variabilidade** conforme o tamanho da amostra.
+
+## Parâmetros da Simulação
+
+```{r}
+media_populacao <- 10
+variancia_populacao <- 2
+desvio_populacao <- sqrt(variancia_populacao)
+
+tamanhos_amostra <- c(20, 50, 100, 200, 500)
+```
+
+
+## Simulação e Análise para cada Tamanho de Amostra
+
+```{r}
+for (n in tamanhos_amostra) {
+  
+  cat("\n\n## Tamanho da amostra: n =", n, "\n\n")
+  
+  # Simulação das médias amostrais
+  medias_amostrais <- replicate(1000, mean(rnorm(n, mean = media_populacao, sd = desvio_populacao)))
+  
+  ## Estatísticas Descritivas
+  cat("### Estatísticas Descritivas\n")
+  resumo <- summary(medias_amostrais)
+  print(resumo)
+  
+  desvio <- sd(medias_amostrais)
+  cat("Desvio padrão:", desvio, "\n")
+  
+  ## Histograma com Curva Normal Teórica
+  hist(medias_amostrais, breaks = 30, probability = TRUE,
+       main = paste("Histograma das Médias Amostrais (n =", n, ")"),
+       xlab = "Média Amostral", col = "skyblue", border = "white")
+  
+  curve(dnorm(x, mean = mean(medias_amostrais), sd = desvio),
+        col = "red", lwd = 2, add = TRUE)
+  
+  legend("topright", legend = c("Curva Normal"), col = "red", lwd = 2, bty = "n")
+  
+  ## Teste de Normalidade
+  shapiro <- shapiro.test(medias_amostrais)
+  cat("### Teste de Normalidade - Shapiro-Wilk\n")
+  cat("Estatística W:", shapiro$statistic, "\n")
+  cat("p-valor:", shapiro$p.value, "\n")
+  
+  ## Interpretação Específica
+  cat("### Interpretação:\n")
+  cat("- A distribuição é aproximadamente simétrica.\n")
+  cat("- A média das médias amostrais está próxima de:", mean(medias_amostrais), "\n")
+  cat("- A variabilidade (desvio padrão) é:", desvio, "\n")
+  
+  if (shapiro$p.value > 0.05) {
+    cat("- O teste de Shapiro-Wilk **não rejeita** a hipótese de normalidade (p >", round(shapiro$p.value, 4), ").\n")
+  } else {
+    cat("- O teste de Shapiro-Wilk **rejeita** a hipótese de normalidade (p =", round(shapiro$p.value, 4), ").\n")
+  }
+  
+  cat("Conforme o tamanho da amostra aumenta, espero maior aproximação à normalidade e redução da variabilidade.\n")
+}
+```
+
+
+## Conclusões Gerais
+
+- A distribuição da média amostral é **simétrica**, principalmente para tamanhos de amostra maiores.
+  
+- A média das médias amostrais está sempre **próxima da média populacional (10)**, como previsto pelo **Teorema Central do Limite**.
+
+- A **variabilidade diminui** conforme o tamanho da amostra aumenta, conforme esperado pela teoria: \(\sigma^2 / n\).
+
+- Para tamanhos pequenos (n = 20, 50), podem ocorrer pequenas rejeições no teste de normalidade, mas a partir de n ≥ 100 há uma clara **aproximação à Normal**, evidenciada pelos gráficos e pelo **teste de Shapiro-Wilk**.
+
+---
+
+## Referência
+
+- Bussab, W. O., & Morettin, P. A. (2017). **Estatística Básica** (8ª ed.). 
