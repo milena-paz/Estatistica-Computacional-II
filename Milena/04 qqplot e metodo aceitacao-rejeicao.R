@@ -67,9 +67,9 @@ curve(dens1(x),from=0,to=5,lwd=2,add=T)
 #1: GERAR Y ~ dens2
 gera <- function(){
   Y<- 0
-  U<- 1
+  U<- 1E4
   cont<- 0
-  while(dens1(Y)/U>M*dens2(Y)){
+  while(U>dens1(Y)/M*dens2(Y)){
     U <- runif(1)
     V <- runif(1)
     X <- -log(U)
