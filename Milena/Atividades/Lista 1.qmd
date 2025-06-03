@@ -1,0 +1,718 @@
+---
+title: "Atividade 1: Geração de números aleatórios"
+subtitle: "EST066 - 2025.1"
+date: today
+format: html
+lang: pt-br
+editor: visual
+author: "Milena Paz Freitas"
+self-contained: true
+toc: true
+---
+
+```{r}
+mat <- 109
+```
+
+# Questão 1
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Calcule a forma explícita da função quantílica e implemente gerador de números aleatórios das seguintes distribuições:
+
+a.  Weibull. \[alunos com mat (mod 3) = 0\]
+
+b.  Pareto. \[alunos com mat (mod 3) = 1\]
+
+c.  Valor extremo. \[alunos com mat (mod 3) = 2\]
+:::
+
+```{r}
+# mat %% 3 = 1 então farei a letra b.
+## Função quantílica da distribuição Pareto(m,a):
+qpareto <- function(p,m=1,a=1){
+  m/(1-p)**(1/a)
+}
+##Método da inversa:
+rpareto <- function(n, m=1,a=1){
+  return(qpareto(runif(n), m, a))
+}
+
+##testando o gerador
+X<- rpareto(100)
+#graficamente
+hist(X,freq=F,breaks=50)
+curve(1/x^2,add=T,lwd=2,col="blue")
+#komolgorov-smirnov (alfa=0.05)
+ks.test(X, function(x) 1-1/x)
+```
+
+Consistentemente (após várias repetições), tanto o histograma quanto o teste Komolgorov-Smirnov geraram resultados suficientemente bons.
+
+# Questão 2
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Use o método da inversa para gerar uma variável aleatória com a seguinte função de distribuição acumulada:
+
+$$
+F_{X}(x)= 
+\begin{cases}
+  1 & , \text{ se } x > 1 \\
+  \frac{x^2+x}{2} & ,\text{ se } 0\leq x \leq 1 \\
+  0 & ,\text{ se } x<0
+\end{cases}
+$$
+:::
+
+```{r}
+##a função quantílica dessa distribuição seria:
+qcustom <- function(p){
+  sqrt(2*p+1/4)-0.5
+}
+##Método da inversa:
+rcustom <- function(n){
+  return(qcustom(runif(n)))
+}
+
+##testando gerador
+X<- rcustom(2E3)
+#graficamente
+hist(X,freq=F,breaks=50)
+curve(x+1/2,add=T,lwd=2,col="blue")
+#komolgorov-smirnov (alfa=0.05)
+ks.test(X, function(x) (x^2+x)/2)
+```
+
+# Questão 3
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Apresente o código de um método para gerar uma variável aleatória com a seguinte função de densidade de probabilidade:
+
+$$
+f_{X}(x)= \text{e}^{-2|x|} \text{, }x \in \mathbb{R}.
+$$
+:::
+
+```{r}
+#temos que X~Laplace(0,1/2) ou "dupla exponencial"
+#assim, a acumulada  é dada por:
+# Fx(x)=1/2*exp(x*2) , se x<0
+# Fx(x)=1 - 1/2*exp(-x*2), se x>0'
+
+##podemos então definir a quantílica:
+qcustom <- function(p){
+  X <- numeric(length(p))
+  case1 <- p<=1/2
+  X[case1] <- log(2*p[case1])/2
+  X[!case1] <- -0.5*log(2-2*p[!case1])
+  return(X)
+}
+##Método da inversa:
+rcustom <- function(n){
+  return(qcustom(runif(n)))
+}
+
+##testando a geradora
+X<-rcustom(1E3)
+#graficamente
+hist(X,freq=F,breaks=50)
+curve(exp(-2*abs(x)),add=T,lwd=2,col="blue")
+#teste komolgorov-smirnov (alfa=0.05)
+ks.test(X, function(x){
+  #funcao distrib acumulada de uma Laplace(0,1/2)
+  d<- numeric(length(x))
+  case1 <- x<=0
+  d[case1] <- 0.5*exp(2*x[case1])
+  d[!case1] <- 1-0.5*exp(-2*x[!case1])
+  return(d)
+})
+```
+
+Consistentemente (após várias repetições), tanto o histograma quanto o teste Komolgorov-Smirnov geraram resultados suficientemente bons.
+
+# Questão 4
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Mostre que se $U\sim \mathcal{U}(0,1)$, então $X=\ln \frac{u}{1-u}$ é uma variável aleatória Logística(0, 1). Mostre também como gerar uma variável aleatória Logística$(\mu,\beta)$.
+:::
+
+Primeiro calculamos o coeficiente Jacobiano em função de $u$ e $x$:
+
+$$
+u=\frac{e^x}{1+e^x}\quad \text{é a inversa da transformação}
+$$
+
+$$
+J(u)=\frac{dX}{du}= \frac{1-u}{u}\frac{(1-u) - (-u)}{(1-u)^2}=\frac{1}{u(1-u)}
+$$
+
+$$
+J(x)=\frac{(1+e^x)^2}{e^x}
+$$
+
+O suporte de X é o conjunto dos números reais, pois representa a subtração entre dois números negativos: $X=\log(\frac{u}{1-u})=\log(u)-\log(1-u)$, onde $\log u, \log(1-u) \in (-\infty,0)$.
+
+Em seguida, aplicamos a transformação na densidade de U:
+
+$$
+\begin{align}
+  g_X(x) & =f_U(x)|J(x)|^{-1} \text I_{\mathbb{R}}(x) =
+  \frac{e^x}{(1+e^x)^2}\text I_{\mathbb{R}}(x) =
+  \frac{e^{2x}}{e^{2x}} \frac{e^x}{(1+e^x)^2}\text I_{\mathbb{R}}(x)
+  \\
+  & = \frac{e^{-x}}{e^{-2x}(1+2e^x+e^{2x})}\text I_{\mathbb{R}}(x)=
+  \frac{e^{-x}}{(e^{-2x}+2e^{-x}+1)}\text I_{\mathbb{R}}(x)
+  \\
+  & = \frac{e^{-x}}{(1+e^{-x})^2}\text I_{\mathbb{R}}(x)
+\end{align}
+$$
+
+Que é a exatamente a densidade de uma $X \sim \text{Logística}(0,1)$.
+
+Agora, para gerar uma VA Logística$(\mu,\beta)$ temos o seguinte algoritmo:
+
+```{r}
+#METODO DA TRANSFORMACAO
+rlogistic<- function(n,m=0,b=1){
+  #1- Logistica padrao
+  U<- runif(n)
+  L<- log(U/(1-U))
+  #2- Locação-escala com os parâmetros dados
+  X<- L*b+m
+  return(X)
+}
+#exemplos graficos:
+par(mfrow=c(3,4),mar=c(3,3,1,1))
+for (i in c(0,2,6)){
+  for(j in c(1,2,4,7)){
+    hist(rlogistic(1E3,i,j),freq=F,xlim=c(-20,20), main=
+           paste("m=",i,"b=",j),breaks=100,xlab="",ylab='',border="gray40")
+    curve(dlogis(x,i,j),add=T,col='blue',lwd=2) #usando a implementacao de {stats}
+  }
+}
+#teste komolgorov-smirnov:
+ks.test(rlogistic(100),plogis)
+ks.test(rlogistic(100,2,3),plogis,location=2,scale=3)
+```
+
+# Questão 5
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Para $\alpha \in [0,1]$, mostre que o algoritmo a seguir:
+
+-   Gerar $U \sim \mathcal{U}(0,1)$ até que $U<\alpha$
+
+produz uma simulação de $\mathcal{U}(0,\alpha)$ e o compare com a transformação $\alpha U$ para valores de $\alpha$ próximos de 1.
+:::
+
+```{r}
+#função que gera uniformemente um número entre 0 e a
+unif.alfa <- function(a=0.5){
+  U<-2
+  while(U>=a){
+    U<-runif(1)
+  }
+  return(U)
+}
+##Comparando os dois métodos
+par(mfrow=c(3,2))
+for(a in c(0.91,0.95,0.9999)){
+  #unif.alfa:
+  X<-replicate(1E4,unif.alfa(a))
+  hist(X,freq=F,sub=bquote(alpha==.(a)),main="Aceitação-Rejeição")
+  #U*alpha:
+  X2<-runif(1E4)*a
+  hist(X2,freq=F,sub=bquote(alpha==.(a)),main="Transformação")
+}
+```
+
+Podemos observar que ambos os métodos produzem resultados satisfatórios para a geração de uma Uniforme$(0,\alpha)$
+
+# Questão 6
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Seja o gerador linear congruencial dado por: $$x_i ≡ (ax_{i-1}+c) \mod 𝑚$$ Em que **a** é chamado multiplicador, **c**, incremento e **m**, módulo do gerador. Frequentemente, **c** é igual a 0 e, neste caso, o gerador é denominado gerador congruencial multiplicativo. Com essas considerações, execute o que se segue:
+
+a.  Implemente um código em R para construir um gerador de números pseudoaleatórios, usando um método congruencial multiplicativo com $m = 2^{13} − 1$ e $a = 17$.
+
+b.  Gere 500 números $x_i$.
+
+c.  Calcule a correlação dos pares de números sucessivos $x_{i+1}$ e $x_i$.
+
+d.  Plote os pares. Em quantas linhas estão os pontos estão situados?
+
+e.  Agora, faça a = 85. Gere 500 números, calcule a correlação dos pares e plote-os.
+
+f.  Verifique os pares xi+2 e xi. Calcule sua correlação.
+
+g.  Comente o que julgar pertinente.
+:::
+
+```{r}
+##A)Gerador congluencial multiplicativo
+geradora <- function(n,Xo,m=2^13-1,a=17){
+  X <- numeric(n)
+  for(i in 1:n){
+    X[i] <- Xo
+    Xo <- a*Xo %% m
+  }
+  return(X)
+}
+##B)
+X<- geradora(500,1)
+##C)
+pares<- 1:250*2
+impares <- 1:250*2-1
+cor(X[impares],X[pares])
+##D)
+plot(X[impares],X[pares],main="a=17")
+#  são 17 linhas! exatamente o mesmo valor de a
+##E)
+X<- geradora(500,1,a=85)
+cor(X[impares],X[pares])
+plot(X[impares],X[pares],main="a= 85")
+#F)
+impares<- 1:249*2-1
+cor(X[impares],X[impares+2])
+plot(X[impares],X[impares+2],main="a= 85")
+#
+pares <- 1:249*2
+cor(X[pares],X[pares+2])
+plot(X[pares],X[pares+2],main="a= 85")
+#G)
+#podemos observar que, para valor a suficientemente grande, é mais difícil
+#enxergar um padrão entre números consecutivos do vetor (são muitas linhas)
+```
+
+# Questão 7
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Deseja-se construir um gerador da distribuição de Cauchy. Compare o método da inversão com outro baseado na geração de par de números aleatórios normais gerados pelo método polar de Box-Muller.
+
+a.  Mostre que, se $X_1$ e $X_2$ são independentes e identicamente distribuídas de acordo com a normal padrão, então $Y=\frac{X_1}{X_2}$ tem distribuição de Cauchy.
+
+b.  Mostre que a função de distribuição acumulada da variável aleatória de Cauchy é $F(x)=\frac{\arctan(x)}{\pi}$ e implemente gerador dessa distribuição usando o método da inversão.
+
+c.  Algum desses métodos é superior? Justifique.
+
+d.  Use o gerador de sua preferência e elabore código para verificar empiricamente o Teorema Central do Limite, simulando médias amostrais de amostra aleatória (variáveis aleatórias iid) de população de Cauchy.
+:::
+
+#### A) Prova de que $X_1/X_2$ é Cauchy
+
+Sejam $X_1$ e $X_2$ variáveis aleatórias normais padrão independentes. A sua conjunta, então, é dada por:
+
+$$
+f_{X_1,X_2}(x_1,x_2)=
+\frac {\exp \{-(x_1^2+x_2^2)/2\}}{2 \pi}  \text I_{\mathbb{R}}(x_1) I_{\mathbb{R}}(x_2)
+$$
+
+Para realizarmos a transformação $Y=X_1/X_2$, escolhemos uma auxiliar $T= X_2$. Dessa forma, temos o coeficiente Jacobiano:
+
+$$
+\begin{aligned}
+& J(x_1,x_2) = \begin{vmatrix}
+      x_2^{-1} & x_1x_2^{-2} \\
+      0 & 1
+    \end{vmatrix}
+    =x_2^{-1}
+\\
+& J(y,t)=t^{-1}
+\end{aligned}
+$$
+
+Assim, temos que a conjunta de Y e T é dada por:
+
+$$
+\begin{aligned}
+  g_{Y,T}(y,t) & =f_{X_1,X_2}(yt,t)|J|^{-1} I_{\mathbb{R}}(y)I_{\mathbb{R}}(t)=
+  \frac {\exp \{-(y^2t^2+t^2)/2\}}{2 \pi}  I_{\mathbb{R}}(y) I_{\mathbb{R}}(t)
+  \\
+  & =\frac {\exp \{-t^2(y^2+1)/2\}}{2 \pi}  I_{\mathbb{R}}(y) I_{\mathbb{R}}(t)
+\end{aligned}
+$$
+
+e, portanto, a marginal de Y é obtida da seguinte forma:
+
+$$
+\begin{aligned}
+  g_Y(y) & =\int_{-\infty}^{+\infty}
+  \frac {|t|\exp \{-t^2(y^2+1)/2\}}{2 \pi}  I_{\mathbb{R}}(y) dt =
+  \frac{I_{\mathbb{R}}(y)}{2\pi}\int_{-\infty}^{+\infty}
+  \exp \{-t^2(y^2+1)/2\}|t|  dt
+  \\
+  & =\frac{I_{\mathbb{R}}(y)}{2\pi(y^2+1)}\int_{-\infty}^{+\infty}
+  \exp \{-t^2(y^2+1)/2\}(y^2+1)|t|  dt
+\end{aligned}
+$$
+
+, onde o integrando é uma função par, portanto:
+
+$$
+\begin{aligned}
+  g_Y(y) & = \frac{I_{\mathbb{R}}(y)}{2\pi(y^2+1)}2\int_{0}^{+\infty}
+  \exp \{-t^2(y^2+1)/2\}(y^2+1)|t|  dt
+\end{aligned}
+$$
+
+Fazendo simples substituição com $u=t^2(y^2+1)/2$ e $du=t(y^2+1)dt$, temos:
+
+$$
+\begin{aligned}
+  g_Y(y) & = \frac{I_{\mathbb{R}}(y)}{\pi(y^2+1)}\int_{0}^{+\infty} e^{-u}du=
+  \frac{I_{\mathbb{R}}(y)}{\pi(y^2+1)}( -e^{-u} |^{+\infty}_0)
+  \\
+  & =\frac{I_{\mathbb{R}}(y)}{\pi(y^2+1)}(0 +1) = \frac{1}{\pi(y^2+1)}I_{\mathbb{R}}(y)
+\end{aligned}
+$$
+
+Que é a densidade de uma **Cauchy(0,1)**, portanto $Y \sim \text{Cauchy}(0,1)$
+
+```{r}
+#METODO 1: DA TRANSFORMAÇÃO
+r.cauchy1 <- function(n){
+  Z1<-rnorm(n)
+  Z2<-rnorm(n)
+  while(any(Z2==0)){
+      zeros <- Z2 == 0
+      Z2[zeros]<- rnorm(sum(zeros))
+    }
+  return(Z1/Z2)
+}
+X<- r.cauchy1(1E3)
+hist(X,freq=F,breaks=50)
+curve(dcauchy(x),add=T,col="blue")
+#teste de komolgorov-smirnov
+ks.test(X, pcauchy)
+```
+
+#### B) Função de distribuição acumulada de Y
+
+Temos que a FDA de Y é dada por:
+
+\begin{aligned}
+  G_Y(y) & = \int^{y}_{-\infty} g_Y(y) dy=\int^{y}_{-\infty} \frac{1}{\pi(y^2+1)} dy
+  = \frac{1}{\pi} \int^{y}_{-\infty} \frac{1}{(y^2+1)} dy = \frac{1}{\pi} \arctan(y)|^y_{-\infty}
+  \\
+  = & \frac{\arctan(y)+\pi/2}{\pi} = \frac{\arctan(y)}{\pi} + \frac{1}{2}
+\end{aligned}
+
+E a função quantílica é:
+
+$$
+\begin{aligned}
+  G_y^{-1}(p)=\tan[\pi(p-1/2)]
+\end{aligned}
+$$
+
+```{r}
+#METODO 2: DA INVERSA
+r.cauchy2 <- function(n){
+  return(tan( pi*( runif(n) - 0.5) ))
+}
+
+#testando
+X<-r.cauchy2(1E3)
+#graficamente
+hist(X,freq=F,breaks=25)
+curve(dcauchy(x),add=T,col="blue")
+#teste de komolgorov-smirnov
+ks.test(X, pcauchy)
+```
+
+O método da inversa pode ser uma melhor escolha pois a transformação de duas normais padrão em Cauchy requer que o denominador seja diferente de 0, que pode manter a função em loop até que se garanta que nenhum X2 seja nulo. Por outro lado, o método 2 é livre de tais restrições.
+
+```{r}
+##D)
+par(mfrow=c(2,2))
+for(n in c(3,50,500,1E4)){
+  X<- r.cauchy2(n)
+  Xbar<-mean(X)
+  hist(Xbar,freq=F,breaks=100,main=expression("Histograma de"~ bar(X)),sub=paste("n=",n))
+}
+```
+
+Podemos observar que $\bar{X}$ da Cauchy não converge para uma normal. Isso é esperado, já que variáveis aleatórias de distrubuição Cauchy não possuem variância nem média finitas, o que é uma condição fundamental do Teorema Central do Limite.
+
+# Questão 8
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Implemente código em R para gerar números aleatórios de uma distribuição
+$\mathcal{B}(\alpha,\beta)$, com a seguinte função de densidade de probabilidade:
+
+$$
+f_X(x)= \frac{1}{\text{B}(2.7;6.3)}x^{2.7-1}(1-x)^{6.3-1}\text{I}_{[0,1]}(x)
+$$
+
+a. Use o algoritmo de aceitação/rejeição baseado na distribuição uniforme.
+
+b. Use o algoritmo de aceitação/rejeição baseado em beta gerada de acordo
+com a transformação apresentada no exemplo 2.2 de Robert e Casella
+(2010), pág. 69 (do pdf).
+
+c. Compare graficamente esses dois procedimentos, apresente os pontos
+gerados em cores diferentes para quando situarem-se na região de
+aceitação ou de rejeição. Apresente o porcentual de pontos gerados nas
+duas regiões. Comente.
+:::
+
+```{r}
+##A) ----
+#Fy ~ Beta(2.7,6.3)
+#Gy ~ Unif(0,1)
+
+#A moda (x onde fx é máxima) dessa beta é (2.7-1)/(2.7+6.3-2)
+#portanto:
+M<- dbeta((1.7)/(2.7+4.3),2.7,6.3)
+#Taxa de aceitacao esperada:
+1/M
+
+#visualizando a candidata Gy sobre a alvo Fx
+curve(dbeta(x,2.7,6.3))
+points((1.7)/(2.7+4.3),M,pch=19)
+curve(dunif(x)*M,add=T,lty=2,lwd=2,col="#005DFF")
+#da pra ver que a densidade da candidata nao "abraça" muito bem o nosso alvo
+
+razao<- function(x){
+  dbeta(x,2.7,6.3)/dunif(x)
+}
+
+#GERANDO POR MÉTODO ACEITACAO-REJEIÇÃO
+
+gera1 <- function(n){
+  MU<- M*runif(n)
+  Y<- runif(n)
+  aceita <- MU<= razao(Y)
+  return(list(ger=Y, aceita=aceita,MU=MU))
+}
+##
+X1 <- gera1(1E4)
+Beta <- X1$ger[X1$aceita]
+#taxa de aceitacao da amostra gerada:
+taxa <- mean(X1$aceita)
+
+#verificação gráfica
+hist(Beta, freq=F,col="grey90",breaks=20)
+curve(dbeta(x,2.7,6.3),add=T,col="red",lwd=2)
+```
+```{r}
+
+##B)
+#Fy ~ Beta(2.7,6.3)
+#Gy ~ Beta(2,6)
+
+#para gerar valores Beta(2,6) será usada a transformação com variáveis Exp(1)
+# do livro do Casella
+beta26 <- function(n){
+  #alocando o vetor da beta
+  Y <- numeric(n)
+  
+  for(i in 1:n){
+    #parte a
+    U <- runif(2)
+    E1 <- -log(U) #transformação de uniforme em Exp(1)
+    #parte b
+    U <- runif(6)
+    E2 <- -log(U)
+    #transformacao em beta(2,6)
+    Y[i] <- sum(E1)/sum(E1,E2)
+  }
+  return(Y)
+}
+#########
+
+razao <- function(x){
+  dbeta(x,2.7,6.3)/dbeta(x,2,6)
+}
+
+M <- optimise(razao,maximum=T,interval=c(0,1))$objective
+#Taxa de aceitacao esperada:
+1/M
+
+#visualizando a candidata Gy sobre a alvo Fx
+curve(dbeta(x,2,6)*M,lty=2,lwd=2,col="blue")
+curve(dbeta(x,2.7,6.3),add=T)
+
+#METODO ACEITACAO REJEICAO
+gera2 <- function(n){
+  MU<- M*runif(n)
+  Y<- beta26(n)
+  aceita <- MU<= razao(Y)
+  return(list(ger=Y, aceita=aceita,MU=MU))
+}
+##
+X2 <- gera2(1E4)
+Beta2 <- X2$ger[X2$aceita]
+#taxa de aceitacao da amostra gerada:
+taxa2 <- mean(X2$aceita)
+
+#verificação gráfica
+hist(Beta2, freq=F,col="grey90",breaks=20)
+curve(dbeta(x,2.7,6.3),add=T,col="red",lwd=2)
+
+```
+```{r}
+##C)
+par(mfrow=c(1,2),mar=c(3,2,1,1))
+MU <- X1$MU
+aceita <- X1$aceita
+ordenadas<- MU*dunif(X1$ger)
+
+#METODO 1
+#Curvas de Fy e Gy
+curve(dbeta(x, 2.7,6.3),lwd=2,col="#003591",ylim=c(0,5))
+curve(dunif(x)*dbeta((1.7)/(2.7+4.3),2.7,6.3),add=T,lty=2,lwd=2,col="orange")
+#pontos aceitos
+points(Beta,ordenadas[aceita],col="#003591",pch=19,cex=0.3)
+#pontos rejeitados
+points(X1$ger[!aceita],ordenadas[!aceita],col="orange",pch=19,cex=0.3)
+
+#taxa de aceitacao da amostra gerada
+taxa1 <-mean(aceita)
+
+MU <- X2$MU
+aceita <- X2$aceita
+ordenadas<- MU*dbeta(X2$ger,2,6)
+
+#METODO 2
+#Curvas de Fy e Gy
+curve(dbeta(x,2,6)*M,lty=2,lwd=2,col="orange",ylim=c(0,5))
+curve(dbeta(x, 2.7,6.3),lwd=2,col="#003591",add=T)
+#pontos aceitos
+points(Beta2,ordenadas[aceita],col="#003591",cex=0.3)
+#pontos rejeitados
+points(X2$ger[!aceita],ordenadas[!aceita],col="orange",pch=19,cex=0.3)
+legend(x="topright",pch=19,col=c("orange","#003591"),bty="n",legend=c("Rejeitados","Aceitos"))
+
+##COMPARANDO as taxas de aceitação:
+#EM PORCENTAGEM
+c("Uniforme"=taxa1*100,"Beta(2,6)"=taxa2*100)
+```
+
+Ambos métodos deram certo, porém: temos que o método da letra **B**, onde a $G_Y$ é $\mathcal{B}$(2,6), tem uma taxa de aceitação aproximadamente 60% maior que o da letra **A**, onde usamos uma Uniforme(0,1). Dessa forma, podemos concluir que a segunda opção é 
+a mais eficiente.
+
+# Questão 9
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Seja X uma variável aleatória exponencial com média 1. Crie um código com um
+algoritmo eficiente para simular uma variável aleatória cuja distribuição é a
+distribuição condicional de X, dado que X < 0,05, ou seja, cuja função de
+densidade de probabilidade é:
+
+$$
+f_X(x)= \begin{cases}
+\frac{e^{-x}}{1-e^{-0.05}} &\text{ , se } 0 \leq x\leq 0.05;
+\\
+0 & \text{ , caso contrário}
+\end{cases}
+$$
+
+a. Estime $\text{E}(X|X<0.05)$ por meio de 1.000 números aleatórios dessa
+variável.
+
+b. Determine o valor exato de $\text{E}(X|X<0.05)$ e compare com o resultado
+obtido em (a).
+:::
+
+#### A)
+
+Podemos usar o método da inversa, começando por integrar a função densidade de probabilidade $f_x$:
+
+$$
+\begin{aligned}
+F_X(x) & = \int_0^x\frac{e^{-x}}{1-e^{-0.05}}dx= \frac{1}{1-e^{-0.05}} \int_0^xe^{-x}dx = \frac{1}{1-e^{-0.05}}(-e^{-x})|^x_0
+\\
+& =\frac{1-e^{-x}}{1-e^{-0.05}}
+\end{aligned}
+$$
+
+E em seguida, invertendo a função distribuição acumulada para obter a quantílica:
+
+$$
+\begin{aligned}
+F_X^{-1}(x) & = -\log[1-p(1-e^{-0.05})]
+\end{aligned}
+$$
+
+```{r}
+
+quantilica <- function(p){
+  Q <- numeric(length(p))
+  case1 <- p >=0 & p<=1
+  Q[case1] <- -log(1-p*(1-exp(-0.05)))
+  Q[!case1] <- 0
+  return(Q)
+}
+
+U <- runif(1E4)
+X<- quantilica(U)
+
+##ESTIMANDO VALOR ESPERADO
+mean(X)
+```
+
+#### B)
+
+Para determinarmos o valor exato de $\text{E}(X|X<0.05)$, fazemos o seguinte cálculo:
+
+$$
+\begin{aligned}
+\text{E}(X|X<0.05) & =\int^{0.05}_0\frac{xe^{-x}}{1-e^{-0.05}}dx=\frac{1}{1-e^{-0.05}} \left[ (-xe^{-x})|_0^{0.05} +\int_0^{0.05}e^{-x}dx \right]
+\\ &=\frac{-0.05e^{-0.05}+1-e^{-0.05}}{1-e^{-0.05}} = \frac{1-1.05e^{-0.05}}{1-e^{-0.05}}= 0.02479168
+\end{aligned}
+$$
+
+Lembrando, o valor da média da simulação foi:
+
+```{r}
+mean(X)
+```
+
+Que é bem próximo do esperado.
+
+# Questão 10
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Use o resultado apresentado no exercício 7, página 92, de ROSS (2006) e construa
+algoritmo para gerar variável aleatória com função de distribuição acumulada,
+apresentada abaixo. Avalie seu desempenho:
+
+$$
+F_X(x)=\begin{cases}\frac{1-e^{-2x}+2x}{3} & \text{, se } 0<x<1;
+\\
+\frac{3-e^{-2x}}{3} & \text{ , se } 1<x<\infty
+\end{cases}
+$$
+
+:::
+
+A distribuição apresentada aparenta ser a combinação linear de uma Exponencial(2) e uma Uniforme(0,1), tal que:
+
+$$
+F_X(x)= \frac{1}{3} F_E(x) +\frac{2}{3}F_U(x)
+$$
+
+, onde $E \sim Exp(2)$ e $U \sim \mathcal{U}(0,1)$. 
+
+Dessa forma, podemos aplicar o método da composição apresentado em ROSS (2006) no R:
+
+```{r}
+nSIM<-1E3
+X<- numeric(nSIM)
+#1- Gerar um número V ~ U(0,1)
+V<-runif(nSIM)
+#2- Identificar se é maior ou menor que alfa (nesse caso, alfa=1/3)
+case1 <- V < 1/3
+#3- Gerar E ou U a depender do caso
+X[case1] <- rexp(sum(case1),2) #caso 1
+X[!case1] <- runif(sum(!case1)) #caso 2
+#
+#resultado:
+hist(X,freq=F,breaks=25)
+
+plot(ecdf(X),lwd=2)
+curve(pexp(x,2)/3+2*punif(x)/3,add=T,col="red",lty=2,lwd=2)
+legend("bottomright", legend=c("Empírica","Teórica"),lty=c(1,2),col=c("black","red"),lwd=2,bty="n")
+``` 
+
+Como podemos observar, principalmente pelo segundo gráfico, a amostra gerada se ajusta muito bem à distribuição composta $F_X$!
