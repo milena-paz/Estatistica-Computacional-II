@@ -101,12 +101,16 @@ pX <- function(x){
   return(soma/8)
 }
 
-####CRIAR UMA FUNCAO DENSIDADE, ACUMULADA E GERADORA PARA QUALQUER MISTURA DE NORMAIS
-
+#### CRIAR UMA FUNCAO DENSIDADE, ACUMULADA E GERADORA PARA QUALQUER MISTURA DE NORMAIS
+##DENSIDADE
 dMisturaNorm <- function(x,mi,dp,probs){
-  #adicionar verificacoes: 
-  #dp positivo, soma de probs ser igual a 1, tamanhos de vetores compativeis
   n <- length(mi)
+  stopifnot(!any(sapply(c(mi,dp,probs),is.na)),
+            all.equal(n,length(dp),
+            length(probs)),
+            sum(probs)==1,
+            all(dp>0))
+  ##
   if(length(x)==1)
     d <- sum(probs*dnorm(x,mi,dp))
   else
@@ -131,9 +135,8 @@ p <- 3/4
 dXmist <- function(x){
   p*dnorm(x,0,1) + (1-p)*dnorm(x,1.5,0.5)
 }
-##
 curve(dXmist(x),col="blue",lwd=3,lty=2,add=T)
-
+##
 
 #EXEMPLO B
 #onde Y1 ~ N(0,1), Y2 ~ N(-6/5,16/25) e Y3 ~N(0,1/4)
@@ -147,5 +150,67 @@ curve(dMisturaNorm(x,mu,sigma,p),from=-5,to=5,lwd=3,col="darkorange")
 dXmist <- function(x){
   p[1]*dnorm(x,mu[1],sigma[1]) + p[2]*dnorm(x,mu[2],sigma[2]) + p[3]*dnorm(x,mu[3],sigma[3])
 }
-##
 curve(dXmist(x),col="blue",lwd=3,lty=2,add=T)
+##
+
+### ACUMULADA
+pMisturaNorm <- function(x,mi,dp,probs){
+  n <- length(mi)
+  stopifnot(!any(sapply(c(x,mi,dp,probs),is.na)),
+            all.equal(n,length(dp),
+                      length(probs)),
+            sum(probs)==1,
+            all(dp>0))
+  if(length(x)==1)
+    d <- sum(probs*pnorm(x,mi,dp))
+  else
+    d <- rowSums(sapply(1:n,function(k) probs[k]*pnorm(x,mi[k],dp[k])))
+  return(d)
+}
+
+###GERADORA ALEATORIA
+rMisturaNorm <- function(n,mu,dp,probs){
+  k<- length(mu)
+  stopifnot(!any(sapply(c(n,mu,dp,probs),is.na)),all.equal(k,length(dp),length(probs)),sum(probs)==1,all(dp>0))
+  X<- numeric(n)
+  #caso especial, quando nao é uma mistura
+  #--------------------------------------#
+  if(k==1){
+      X <- rnorm(n,mu,dp);return(X)
+    }
+  #--------------------------------------#
+  U <- runif(n)
+  caso <- list(0)
+  #extremidades
+  p <- cumsum(probs)
+  caso[[1]] <- U <= p[1]
+  caso[[k]] <- U > p[k-1]
+  if(k==2){
+    tam <- sapply(caso,sum)
+    X[ caso[[1]] ] <- rnorm(tam[1],mu[1],dp[1])
+    X[ caso[[2]] ] <- rnorm(tam[2],mu[2],dp[2])
+    return(X)
+  }
+  #intermediarios
+  for(i in 2:(k-1))
+   caso[[i]] <- U<= p[i] & U> p[i-1]
+  tam <- sapply(caso,sum)
+  for(i in 1:k){
+    X[ caso[[i]] ] <- rnorm(tam[i],mu[i],dp[i])
+  }
+  return(X)
+}
+##### testando a geradora
+p<- c(9/20,9/20,0.1)
+mu <- c(0,-1.2,0)
+sigma <- c(1,0.8,0.5)
+#
+teste <- rMisturaNorm(1E3,mu,sigma,p)
+#
+hist(teste,freq=F,breaks=30)
+curve(dMisturaNorm(x,mu,sigma,p),add=T,lwd=3,col="#007BFF")
+#
+plot(ecdf(teste),lwd=3,col="darkred")
+curve(pMisturaNorm(x,mu,sigma,p),add=T,col="#007BFF",lwd=3,lty=3)
+#
+ks.test(teste,"pMisturaNorm",mi=mu,dp=sigma,probs=p)
