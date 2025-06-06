@@ -151,3 +151,36 @@ gerador.aceitacao <- function(n,maximo,f_x,g_y,rg_y,...)
   print(paste("taxa de aproveitamente de ",round(100*n/contador,digits=3),"%",sep = ""))
   return(pontos)
 }
+
+geradorbernoulli <- function(n,p)
+{
+  return(as.numeric(runif(n)<p))
+}
+
+geradorbinomial <- function(k,n,p)
+{
+  replicate(k,sum(geradorbernoulli(n,p)))
+}
+
+geradorgeometrica <- function(n,p)
+{
+  return(log(runif(n))%/%log(1-p) + 1)
+}
+
+graficodebarras <- function(valoresgerados,distribuicao,cores=c("#aa00aa99","#ffaa3399","#ff0838"),...)
+{
+  tabela<- table(valoresgerados)/length(valoresgerados)
+  nomes <- names(tabela)
+  
+  #gambiarra forte, é só para criar a escala do barplot
+  barplot(tabela,
+          names.arg=nomes,col="#ffffff00",border=F
+          ,main="densidade dos valores gerados",ylim=c(0,max(tabela)+0.1))
+  grid(col=cores[3])
+  barplot(distribuicao((as.numeric(nomes))-1,...),
+          names.arg=nomes,col=cores[1],add=T,border = F)
+  barplot(tabela,
+          names.arg=nomes,col=cores[2],border=F,add=T)
+  legend("topright",legend = c("proporcao teórica","proporcao empírica"),col=cores,lwd=5)
+}
+
