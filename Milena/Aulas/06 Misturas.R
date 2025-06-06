@@ -84,23 +84,68 @@ fYi <- function(x,k){
   a <- (2/3)^k
   return(dnorm(x,3*(a-1), a))
 }
+
+
 densX <- function(x){
-  soma<-0
-  for(k in 0:8)
-    soma <- soma + Yi(x,k)
-  return(1/8*soma)
+  somas <- rowSums(sapply(0:8,function(k) fYi(x,k) ))
+  return(somas/8)
 }
-curve(densX(x), from=-5, to=5)
+curve(densX(x), from=-5, to=5,lwd=2)
 
 FYi <- function(x,k){
   a <- (2/3)^k
   return(pnorm(x,3*(a-1), a))
 }
 pX <- function(x){
-  soma<-0
-  for(k in 0:8)
-    soma <- soma + FYi(x,k)
-  return(1/8*soma)
+  soma <- rowSums(sapply(0:8,function(k) fYi(x,k) ))
+  return(soma/8)
 }
 
 ####CRIAR UMA FUNCAO DENSIDADE, ACUMULADA E GERADORA PARA QUALQUER MISTURA DE NORMAIS
+
+dMisturaNorm <- function(x,mi,dp,probs){
+  #adicionar verificacoes: 
+  #dp positivo, soma de probs ser igual a 1, tamanhos de vetores compativeis
+  n <- length(mi)
+  if(length(x)==1)
+    d <- sum(probs*dnorm(x,mi,dp))
+  else
+    d <- rowSums(sapply(1:n,function(k) probs[k]*dnorm(x,mi[k],dp[k])))
+  return(d)
+}
+
+###APLICANDO NOS EXEMPLOS ANTERIORES
+
+#EXEMPLO A
+#Y1 ~ N(0,1)
+#Y2 ~ N(3/2,1/4)
+# X = p*Y1 + (1-p)*Y2
+p <- c(0.75,0.25)
+mu<- c(0,1.5)
+sigma <- c(1,0.5)
+
+curve(dMisturaNorm(x,mu,sigma,p),from=-5,to=5,lwd=3,col="darkorange")
+#comparando com o metodo feito antes
+##
+p <- 3/4
+dXmist <- function(x){
+  p*dnorm(x,0,1) + (1-p)*dnorm(x,1.5,0.5)
+}
+##
+curve(dXmist(x),col="blue",lwd=3,lty=2,add=T)
+
+
+#EXEMPLO B
+#onde Y1 ~ N(0,1), Y2 ~ N(-6/5,16/25) e Y3 ~N(0,1/4)
+p<- c(9/20,9/20,0.1)
+mu <- c(0,-1.2,0)
+sigma <- c(1,0.8,0.5)
+
+curve(dMisturaNorm(x,mu,sigma,p),from=-5,to=5,lwd=3,col="darkorange")
+#comparando com o metodo feito antes
+##
+dXmist <- function(x){
+  p[1]*dnorm(x,mu[1],sigma[1]) + p[2]*dnorm(x,mu[2],sigma[2]) + p[3]*dnorm(x,mu[3],sigma[3])
+}
+##
+curve(dXmist(x),col="blue",lwd=3,lty=2,add=T)
