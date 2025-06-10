@@ -184,3 +184,25 @@ graficodebarras <- function(valoresgerados,distribuicao,cores=c("#aa00aa99","#ff
   legend("topright",legend = c("proporcao teórica","proporcao empírica"),col=cores,lwd=5)
 }
 
+dnormal.pvariada <- function(x,cov.mat,medias)
+{
+  exp(-t(x-medias)*cov.mat*(x-medias))/((2*pi)^(length(medias)/2)*(det(cov.mat))^(1/2))
+}
+
+gerabivariadadependente <- function(n,medias,sigma,rho)
+{
+  valoresx2 <- rnorm(n,mean=medias[2],sd=sqrt(sigma[2]))
+  
+  valoresx1 <- rnorm(n,mean=(medias[1]+
+                               rho*sqrt(sigma[1]/sigma[2])*(valoresx2-medias[2])),sd=sqrt(sigma[1]*(1-(rho)^2)))
+  
+  pontos <- matrix(c(valoresx1,valoresx2),nrow=n,byrow = F)
+  
+  print(apply(pontos,2,mean))
+  
+  print(cov(pontos))
+  
+  plot(pontos)
+  
+  return(pontos)
+}
