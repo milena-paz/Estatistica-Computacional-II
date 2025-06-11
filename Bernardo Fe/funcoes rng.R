@@ -184,11 +184,13 @@ graficodebarras <- function(valoresgerados,distribuicao,cores=c("#aa00aa99","#ff
   legend("topright",legend = c("proporcao teórica","proporcao empírica"),col=cores,lwd=5)
 }
 
+#formula da distribuicao normal com p variaveis, nao sei se vai precisar
 dnormal.pvariada <- function(x,cov.mat,medias)
 {
   exp(-t(x-medias)*cov.mat*(x-medias))/((2*pi)^(length(medias)/2)*(det(cov.mat))^(1/2))
 }
 
+#gera uma normal bivariada com um coeficiente de correlacao rho
 gerabivariadadependente <- function(n,medias,sigma,rho)
 {
   valoresx2 <- rnorm(n,mean=medias[2],sd=sqrt(sigma[2]))
@@ -205,4 +207,17 @@ gerabivariadadependente <- function(n,medias,sigma,rho)
   plot(pontos)
   
   return(pontos)
+}
+#elipse que uso na minha animacao, a e b sao os parametros de uma elipse normal, que todo mundo ja conhece. e
+#rot significa uma rotacao nessa elipse, x0 e y0 significa o deslocamento dela (ate a media da normal)
+elipse <- function(a,b,rot=0,x0=0,y0=0) list(x=function(x) a*cos(x)*cos(rot)+b*sin(x)*sin(rot) + x0,y= function(x) a*cos(x)*sin(rot) - b*sin(x)*cos(rot)+y0)
+#o parametro a b da elipse, autovalores deve ser os autovalores da matriz de covariancia
+elipse.a <- function(a,autovalores) sqrt(qchisq(a,2)*(autovalores[1]))
+elipse.b <- function(a,autovalores) sqrt(qchisq(a,2)*(autovalores[2]))
+#calcula o angulo entre dois vetores, usei para achar a rotacao da minha elipse
+angulo <- function(a,b) acos(sum(a*b)/(sqrt(sum(a*a))*sqrt(sum(b*b))))
+#cria a matriz de covariancia de uma normal bivariada usando as variancias de cada junto do coef. de correl. 
+criasigmabivariado <- function(sigma1,sigma2,rho) 
+{
+  matrix(c(sigma1,rho*sqrt(sigma1*sigma2),rho*sqrt(sigma1*sigma2),sigma2),byrow=F,nrow=2)
 }
