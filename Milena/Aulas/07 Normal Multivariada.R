@@ -44,9 +44,64 @@ cov(X1,X2)/sqrt(var1*var2)
 #entao
 #scale(Xtil,center=T,scale=F) %*% solve(S) %*% t(scale(Xtil,center=T,scale=F))
 #
-M <- scale(X.til,center=T,scale=F) %*% solve(S) %*% t(scale(X.til,center=T,scale=F))
+Xc<- scale(X.til,center=T,scale=F)
+M <- Xc %*% solve(S) %*% t(Xc)
 scores <- diag(M)
 
-ks.test(scores, pchisq, df=100)
-probs <- (rank(scores)-0.5)/100
-plot(scores, qchisq(probs,df=100))
+#construcao do Q-Q plot da amostra
+ks.test(scores, pchisq, df=3)
+
+probs <- ppoints(length(scores))
+q.amostra<- sort(scores)
+q.teorico <- qchisq(probs, df=3)
+plot(q.teorico, q.amostra, main="Q-Q plot Qui-Quadrado(3)")
+b<- (q.amostra[75]-q.amostra[25])/(q.teorico[75]-q.teorico[25])
+abline(a=q.amostra[25] - q.teorico[25]*b,b= b,
+         col="blue", lty=2,lwd=3)
+quantile(scores, prob=c(0.25,0.75))
+qchisq(c(0.25,0.75),df=3)
+
+#### Normal multivariada por Decomposicao de Cholesky ####
+#temos Z1,Z2,...,Zp iid Z~N(0,1)
+#aij, i, j =1,...,p]
+# Xtil= A*Ztil + mitil
+# e Xtil ~ N(mitil,SigmaX)
+
+# OBJETIVO: Gerar vetor de p nũmeros aleatõrios de uma normal multivariada com 
+#   vetor de médias mitil
+#   matriz de covariancias SigmaX
+mi<- c(-1,0,1)
+SigmaX <- matrix(c(9,4,2,4,8,3,2,3,7),ncol=3)
+# 1- GERAR P NUMEROS ALEATORIOS DE NORMAL PADRAO
+Z <- rnorm(3)
+# 2- Encontrar uma matriz A t.q. SigmaX = A*t(A) (decomposicao de Cholesky)
+A <- t(chol(SigmaX))
+# 3- Calcular X = A*Z+mi
+X<- A%*%Z+mi
+###
+V.meio<- diag(1/sqrt(diag(SigmaX)))
+V.meio%*%SigmaX%*%V.meio #matriz de correlacao teorica
+
+geraMultinorm <- function(n, p, mi, sigma){
+  Z<- replicate(n, rnorm(p))
+  #podemos mudar essa geracao da normal padrao usando box-muller
+  A <- t(chol(SigmaX))
+  X <- apply(Z,2,function(z) A%*%z+mi )
+  return(t(X))
+}
+
+X<- geraMultinorm(100,3,mi,SigmaX)
+S <- cov(X) # matriz de covariancas amostral
+colMeans(X) # media amostral
+R<- cor(X) # matriz de correlacao amostral
+
+#verificar normalidade das marginais
+sapply(1:3, function(i){
+  ks.test(X[,i], pnorm, mean=mi[i], sd= sqrt(SigmaX[i,i]))
+})
+
+#visualizando as distribuicoes bivariadas:
+#(X1,X2); (X2,X3) ; (X1,X3)
+plot(X[,1],X[,2])
+plot(X[,2],X[,3])
+plot(X[,1],X[,3])
