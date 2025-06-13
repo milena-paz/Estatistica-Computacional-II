@@ -13,7 +13,7 @@ mu1<-1 ; mu2<- 3; var1<- 2; var2<- 1; corr <- -0.8
 # -Calculamos mu.str <- 1 - corr*sqrt(var2/var1)*(X2-3)
 # -Gerar X1 de acordo com uma N(mu.str,var.str)
 # -Retornar (X1,X2)
-Multinorm <- function(n,mu1,mu2,var1,var2,corr){
+BiNorm <- function(n,mu1,mu2,var1,var2,corr){
   var.str <- var1*(1-corr^2)
   X2 <- rnorm(n, mu2,sqrt(var2))
   mu.str <- mu1 + corr*sqrt(var1/var2)*(X2-mu2)
@@ -22,7 +22,7 @@ Multinorm <- function(n,mu1,mu2,var1,var2,corr){
   })
   return(matrix(c(X1,X2), ncol=2))
 }
-X.til <- Multinorm(100,mu1,mu2,var1,var2,corr)
+X.til <- BiNorm(1E3,mu1,mu2,var1,var2,corr)
 X1 <- X.til[,1]
 X2 <- X.til[,2]
 
@@ -45,21 +45,20 @@ cov(X1,X2)/sqrt(var1*var2)
 #scale(Xtil,center=T,scale=F) %*% solve(S) %*% t(scale(Xtil,center=T,scale=F))
 #
 Xc<- scale(X.til,center=T,scale=F)
-M <- Xc %*% solve(S) %*% t(Xc)
-scores <- diag(M)
+
+scores <- diag(Xc %*% solve(S) %*% t(Xc))
 
 #construcao do Q-Q plot da amostra
-ks.test(scores, pchisq, df=3)
+ks.test(scores, pchisq, df=2)
 
 probs <- ppoints(length(scores))
 q.amostra<- sort(scores)
-q.teorico <- qchisq(probs, df=3)
-plot(q.teorico, q.amostra, main="Q-Q plot Qui-Quadrado(3)")
-b<- (q.amostra[75]-q.amostra[25])/(q.teorico[75]-q.teorico[25])
-abline(a=q.amostra[25] - q.teorico[25]*b,b= b,
-         col="blue", lty=2,lwd=3)
-quantile(scores, prob=c(0.25,0.75))
-qchisq(c(0.25,0.75),df=3)
+q.teorico <- qchisq(probs, df=2)
+plot(q.teorico, q.amostra, main="Q-Q plot Qui-Quadrado(2)")
+#b<- (q.amostra[75]-q.amostra[25])/(q.teorico[75]-q.teorico[25])
+#abline(a=q.amostra[25] - q.teorico[25]*b,b= b,
+#         col="blue", lty=2,lwd=3)
+qqline(q.amostra, distribution = function(p) qchisq(p,df=2))
 
 #### Normal multivariada por Decomposicao de Cholesky ####
 #temos Z1,Z2,...,Zp iid Z~N(0,1)
@@ -100,8 +99,24 @@ sapply(1:3, function(i){
   ks.test(X[,i], pnorm, mean=mi[i], sd= sqrt(SigmaX[i,i]))
 })
 
-#visualizando as distribuicoes bivariadas:
+# Visualizando as distribuicoes bivariadas:
 #(X1,X2); (X2,X3) ; (X1,X3)
 plot(X[,1],X[,2])
 plot(X[,2],X[,3])
 plot(X[,1],X[,3])
+
+## Q-Q plot da normal trivariada
+Xc<- scale(X,center=T,scale=F)
+
+scores <- diag(Xc %*% solve(S) %*% t(Xc))
+
+#construcao do Q-Q plot da amostra
+
+ks.test(scores, pchisq, df=3)
+
+probs <- ppoints(length(scores))
+q.amostra<- sort(scores)
+q.teorico <- qchisq(probs, df=3)
+plot(q.teorico, q.amostra, main="Q-Q plot Qui-Quadrado(3)")
+qqline(q.amostra, distribution = function(p) qchisq(p,df=3),
+       col="blue", lty=2,lwd=3)
