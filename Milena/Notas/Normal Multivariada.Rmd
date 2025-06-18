@@ -1,0 +1,210 @@
+---
+title: "Normal Multivariada"
+author: "Milena Paz Freitas"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Normal Bivariada
+
+Deseja-se gerar vários pares ordenados da variável aleatória $X_\sim = (X_1,X_2) \sim N_2(\mu_\sim,\Sigma)$, onde:
+$$
+\mu_\sim = \begin{bmatrix}
+  1 \\ 3
+\end{bmatrix}
+\quad \Sigma = \begin{bmatrix}
+2 & \rho\sqrt{2} \\
+\rho\sqrt{2} & 1
+\end{bmatrix}\text{, onde } \rho = -0.8
+$$
+
+Para gerá-los, podemos gerar uma pela marginal de $X_2$ e, a partir da condicional, obter $X_1$.
+
+#### Algoritmo:
+
+ - Calcular $\sigma^2_* = \sigma^2_1(1-\rho^2)$
+ 
+ - Gerar $X_2$ de acordo com sua distribuição marginal $N(3,1)$
+ 
+ - Calcular $\mu_*  = \mu_1 - \rho\frac{\sigma_2}{\sigma_1}(X_2-\mu_2)$
+ 
+ - Gerar $X_1$ de acordo com a condicional $X_1|X_2 \sim N(\mu_*,\sigma^2_*)$
+ 
+ - Retornar $(X_1,X_2)'$
+
+
+
+### Implementação
+
+```{r}
+#salvando parametros:
+mi <- c(1,3)
+sigma <- c(2,1)
+corr <- -0.8
+
+#funcao geradora:
+BiNorm <- function(n,mu1,mu2,var1,var2,corr){
+  var.str <- var1*(1-corr^2)
+  X2 <- rnorm(n, mu2,sqrt(var2))
+  mu.str <- mu1 + corr*sqrt(var1/var2)*(X2-mu2)
+  X1 <- sapply(mu.str, function(mu){
+    rnorm(1,mu,sqrt(var.str))
+  })
+  return(matrix(c(X1,X2), ncol=2))
+}# fim funcao geradora
+
+X.til <- BiNorm(1E3,mi[1],mi[2],sigma[1],sigma[2],corr)
+X1 <- X.til[,1]
+X2 <- X.til[,2]
+```
+
+```{r}
+#visualizando os pares ordenados
+plot(X1,X2)
+
+#histogramas individuais:
+hist(X1,freq=F,breaks=25)
+curve(dnorm(x,mi[1],sqrt(sigma[1])),add=T,col="blue",lwd=2)
+hist(X2, freq=F,breaks=25)
+curve(dnorm(x,mi[2],sqrt(sigma[2])),add=T,col="red",lwd=2)
+
+#medias amostrais:
+apply(X.til,2,mean)
+
+# matriz de covariancias amostral
+(S <- cov(X.til))
+
+#coeficiente de correlacao amostral
+cov(X1,X2)/sqrt(sigma[1]*sigma[2])
+```
+
+#### Teste Qui-Quadrado e Q-Q Plot
+Seja $X_\sim \sim N_2(\mu_\sim,\Sigma)$, então: $(X_\sim - \mu_\sim) \Sigma^{-1} (X_\sim - \mu_\sim) \sim \mathcal{X}^2_2$
+
+Temos então:
+$$
+\begin{aligned}
+& H_O: \text{Essa distribuição (da amostra) segue uma } \mathcal{X}^2_2
+\\
+& H_A : \text{Caso contrário}
+\end{aligned}
+$$
+
+```{r}
+Xc<- scale(X.til,scale=F)
+
+scores <- diag(Xc %*% solve(S) %*% t(Xc))
+
+ks.test(scores, pchisq, df=2)
+```
+
+
+```{r}
+#construcao do Q-Q plot da amostra
+probs <- ppoints(length(scores))
+q.amostra<- sort(scores)
+q.teorico <- qchisq(probs, df=2)
+plot(q.teorico, q.amostra, main="Q-Q plot Qui-Quadrado(2)")
+qqline(q.amostra, distribution = function(p) qchisq(p,df=2),
+       col="blue", lty=2,lwd=3)
+```
+
+# Normal Multivariada por Decomposição de Cholesky
+Queremos gerar vetor de p números aleatórios de uma normal multivariada $X_\sim = (X_1,X_2,X_3)$ com:
+
+$$
+\mu_\sim = \begin{bmatrix}
+  -1 \\ 0 \\ 1
+\end{bmatrix}
+\quad \Sigma = \begin{bmatrix}
+9 & 4 & 2 \\
+4 & 8 & 3 \\
+2 & 3 & 7
+\end{bmatrix}
+$$
+
+Temos que:
+$$
+\begin{aligned}
+X_\sim & = A*Z_\sim + \mu_\sim \quad \text{, onde:}
+\\
+&  A A' = \Sigma \quad \text{, e A é triangular inferior}
+\\
+& Z_\sim \text{ é uma amostra simples de p valores normais padrão}
+\end{aligned}
+$$
+
+#### Algoritmo:
+
+- Gerar $Z_\sim = (Z_1,...,Z_p)$
+
+- Encontrar a matriz $A$ t.q. $A A' = \Sigma$ (decomposição de Cholesky)
+
+- Obter $X = AZ_\sim + \mu_\sim$
+
+### Implementação
+
+```{r}
+## definindo parametros
+mi<- c(-1,0,1)
+SigmaX <- matrix(c(9,4,2,4,8,3,2,3,7),ncol=3)
+##
+Z <- rnorm(3)
+
+A <- t(chol(SigmaX))
+
+X<- A%*%Z+mi
+###
+V.meio<- diag(1/sqrt(diag(SigmaX)))
+
+#matriz de correlacao teorica:
+V.meio%*%SigmaX%*%V.meio
+
+#funcao geradora multinormal
+Multinorm <- function(n, p, mi, sigma){
+  Z<- replicate(n, rnorm(p))
+  A <- t(chol(SigmaX))
+  X <- apply(Z,2,function(z) A%*%z+mi )
+  return(t(X))
+} #fim funcao geradora
+## obs: seria bom adicionar verificaçoes das dimensoes e se a
+## matriz sigma é positiva definida
+
+X<- Multinorm(100,3,mi,SigmaX)
+S <- cov(X) # matriz de covariancas amostral
+colMeans(X) # media amostral
+R<- cor(X) # matriz de correlacao amostral
+
+#verificando normalidade das marginais
+sapply(1:3, function(i){
+  ks.test(X[,i], pnorm, mean=mi[i], sd= sqrt(SigmaX[i,i]))
+},simplify=F)
+
+# Visualizando as distribuicoes bivariadas:
+#(X1,X2); (X2,X3) ; (X1,X3)
+plot(X[,1],X[,2])
+plot(X[,2],X[,3])
+plot(X[,1],X[,3])
+```
+
+#### Teste Qui-Quadrado e Q-Q plot
+
+```{r}
+
+Xc<- scale(X,center=T,scale=F)
+
+scores <- diag(Xc %*% solve(S) %*% t(Xc))
+
+ks.test(scores, pchisq, df=3)
+
+## Q-Q plot da normal trivariada
+
+probs <- ppoints(length(scores))
+q.amostra<- sort(scores)
+q.teorico <- qchisq(probs, df=3)
+plot(q.teorico, q.amostra, main="Q-Q plot Qui-Quadrado(3)")
+qqline(q.amostra, distribution = function(p) qchisq(p,df=3),
+       col="blue", lty=2,lwd=3)
+```
+
+
