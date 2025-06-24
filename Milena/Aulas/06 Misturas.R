@@ -180,23 +180,11 @@ rMisturaNorm <- function(n,mu,dp,probs){
     }
   #--------------------------------------#
   U <- runif(n)
-  caso <- list(0)
-  #extremidades
-  p <- cumsum(probs)
-  caso[[1]] <- U <= p[1]
-  caso[[k]] <- U > p[k-1]
-  if(k==2){
-    tam <- sapply(caso,sum)
-    X[ caso[[1]] ] <- rnorm(tam[1],mu[1],dp[1])
-    X[ caso[[2]] ] <- rnorm(tam[2],mu[2],dp[2])
-    return(X)
-  }
-  #intermediarios
-  for(i in 2:(k-1))
-   caso[[i]] <- U<= p[i] & U> p[i-1]
-  tam <- sapply(caso,sum)
+  p <- cumsum(c(0,probs))
   for(i in 1:k){
-    X[ caso[[i]] ] <- rnorm(tam[i],mu[i],dp[i])
+    caso <- U <= p[i+1] & U> p[i]
+    tam <- sum(caso)
+    X[caso] <- rnorm(tam,mu[i],dp[i])
   }
   return(X)
 }

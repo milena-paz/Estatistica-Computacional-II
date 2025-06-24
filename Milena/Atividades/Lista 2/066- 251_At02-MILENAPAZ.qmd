@@ -1,0 +1,268 @@
+---
+title: "Atividade 2 – Geração de Números Aleatórios: Variáveis Aleatórias Discretas & Misturas"
+sub: "EST066 - 2025.1"
+author: "Milena Paz Freitas"
+format: html
+self-contained: true
+toc: true
+editor: source
+---
+
+# Questão 1
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Construa um gerador da variável aleatória X, com função de probabilidade $f_X(1)=\frac{1}{3}$ e $f_X(2)=\frac{2}{3}$.
+
+a.  Use seu gerador e estime a proporção de valores iguais a um, para n = 100.
+
+b.  Repita (a) para n = 1.000.
+
+c.  Repita (a) para n = 10.000.
+:::
+
+```{r}
+#X é semelhante a uma Bernoulli(2/3), que ao invés de assumir valores 0 ou 1, assume 1 ou 2.
+#ou seja, podemos fazer o seguinte:
+p <- 2/3
+
+rBern<- function(n,p){
+  U <- runif(n)
+  return(as.numeric(U<=p))
+}
+#A), B) e C)
+for(n in c(100,1E3,1E4)){
+  #gera a bernoulli e soma 1
+  X <- rBern(n,p) + 1
+  #estimativa da proporção de x=1
+  print(paste("Proporção de x=1 para n =", n))
+  print(mean(X==1))
+}
+```
+
+# Questão 2
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Apresente um código que gere os valores de X, onde:
+
+$$
+f_X(j)=P(X=j)= \left( \frac{1}{2} \right)^{j+1} 
++\frac{\left( \frac{1}{2} \right)2^{j-1}}{3^j},\quad j=1,2,...
+$$
+
+:::
+
+Podemos observar que essa função de probabilidade é a mistura de duas geométricas: $G_1 \sim \text{Geom}(1/2)$ e $G_2 \sim \text{Geom}(1/3)$ ambas com $\alpha = 0.5$.
+
+```{r}
+# 1- Funcao geradora de Geometricas
+rGeom <- function(n,p){
+  U <- runif(n)
+  G <- log(U) %/% log(1-p) + 1
+  return(G)
+}
+# 2- Funcao geradora de X
+rMist <- function(n){
+  U <- runif(n)
+  X<- numeric(n)
+  caso1 <- U <= 0.5
+  #
+  X[caso1] <- rGeom( sum(caso1), 1/2 )
+  #
+  X[!caso1] <- rGeom( sum(!caso1), 1/3 )
+  #
+  return(X)
+}
+
+X <- rMist(1E3)
+
+#MONTANDO UMA TABELA PARA COMPARAR AS PROPORCOES GERADAS COM AS PROPORCOES TEORICAS
+tab.empirica <- table(X)/1E3
+valores <- sort(unique(X))
+tab.teorica <- dgeom(valores-1,1/2)*0.5 + dgeom(valores-1,1/3)*0.5
+
+rbind("Prop. Amostral"= tab.empirica,"Prop. Teorica"= tab.teorica)
+```
+
+# Questão 3
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Um baralho de 100 cartas, numeradas de 1 a 100, é
+ embaralhado. Vira-se uma carta por vez. Digamos que um "ponto" ocorra sempre
+ que a carta i for a i-ésima carta virada, i = 1, 2, ..., 100.
+ Escreva um código para simulação desse jogo e estime a esperança e a variância
+ do número total de “pontos”. Execute o programa. Determine as respostas exatas e compare-as com suas estimativas.
+:::
+
+Seja X o número total de pontos, podemos modelar esse jogo como uma variável aleatória binomial com 1/100 de probabilidade de sucesso. Assim, temos que:
+
+$$
+\begin{aligned}
+& \text E(X)= 100\frac{1}{100}=1
+\\
+& \text{Var}(X) = 100\frac{1}{100}\frac{99}{100}=0,99
+\end{aligned}
+$$
+
+```{r}
+#podemos usar a soma de bernoullis para simular X
+jogo <- function(){
+  return(sum(rBern(100,0.01))) #usa a funcao geradora da questao 1
+}
+
+X<- replicate(1E3, jogo())
+
+mean(X)
+var(X)
+
+plot(ecdf(X))
+curve(pbinom(x,100,0.01),add=T,col="red",lwd=1.5,lty=2)
+```
+
+# Questão 4
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Seja $S_N= \sum^N_{i=1} e^{i/N}$, em que $N=10.000$.
+
+a. Explique como você poderia encontrar uma aproximação para $S_N$,
+usando 100 números aleatórios.
+
+b. Obtenha a aproximação de $S_N$.
+
+c. A aproximação obtida em (b) é boa?
+:::
+
+```{r}
+
+```
+
+# Questão 5
+
+::: {.callout-note appearance="minimal"}
+Suponha que a variável aleatória X possa tomar qualquer um dos valores 1, 2,
+..., 10, com probabilidades 0,06; 0,06; 0,06; 0,06; 0,06; 0,15; 0,13; 0,14; 0,15; 
+0,13. Use a abordagem por composição (composite approach) para construir um
+algoritmo que gere os valores de X.
+:::
+
+```{r}
+#metodo da composicao
+probs<- c(0.06,0.06,0.06,0.06,0.06,0.15,0.13,0.14,0.15,0.13)
+
+geraComp <- function(n,probs){
+  intervalos <- cumsum(c(0,probs))
+  U<- runif(n)
+  X<- numeric(n)
+  for(i in seq_along(probs)){
+    caso <- U <= intervalos[i+1] & U> intervalos[i]
+    X[caso] <- i
+  }
+  return(X)
+}
+X<- geraComp(1E3,probs)
+rbind(p.Gerados=table(X)/1E3,p.Teoricos= probs)
+```
+
+# Questão 6
+
+::: {.callout-note appearance="minimal"}
+A variável aleatória $X$ tem função de probabilidade $p_j=\text P(X=j)$, $\sum^\infty_{j=1}p_j=1$. Seja:
+
+$$
+\lambda_n =  \text P\{ X=n | X>n-1 \} = \frac{p_n}{1-\sum^{n-1}_{j=1}p_j}, \quad j=1,2,...
+$$
+
+a. Mostre que $p_1=\lambda_1$ e $p_n=(1-\lambda_1)(1-\lambda_2)...(1- \lambda_{n-1}) \lambda_n$ .
+As grandezas $\lambda_n$, $n \geq 1$, são denominadas taxas de risco discretas, uma
+vez que se pensarmos em $X$ como o tempo de vida de algum item, então
+$\lambda_n$ representa a probabilidade de que um item que atingiu a idade $n$
+morrerá nesse período de tempo. A abordagem de simulação variáveis
+aleatórias discretas a seguir é denominada método da taxa de risco
+discreta. Ela gera uma sucessão de números aleatórios, parando quando
+o número aleatório $n$ é menor que $\lambda_n$. O algoritmo pode ser escrito da
+seguinte forma:
+
+- PASSO 1: $X = 1$.
+
+- PASSO 2: Gere um número aleatório $U$.
+
+- PASSO 3: Se $U < \lambda_X$, pare.
+
+- PASSO 4: $X = X + 1$.
+
+- PASSO 5: Retorne ao PASSO 2.
+
+b. Mostre que o valor de $X$ obtido com o algoritmo acima tem a função de
+probabilidades desejada.
+
+c. Suponha que $X$ é uma variável aleatória geométrica com o parâmetro $p$.
+Determine os valores $\lambda_n$, $n \geq 1$. Explique o que o algoritmo acima está
+fazendo neste caso e porque sua validade está clara.
+:::
+
+#### A) Recursividade de $\lambda_j$
+
+Temos que:
+
+$$
+\begin{align}
+& \lambda_1=\frac{p_1}{1-0}=p_1 &&
+\\
+& \lambda_2= \frac{p_2}{1-p_1} = \frac{p_2}{1-\lambda_1} \Rightarrow
+  p_2=\lambda_2(1-\lambda_1)
+\\
+& \lambda_3= \frac{p_3}{1-p_2-p_1} = \frac{p_3}{1-\lambda_1-\lambda_2(1-\lambda_1)}
+= \frac{p_3}{(1-\lambda_1)(1-\lambda_2)} \Rightarrow  p_3=\lambda_3(1-\lambda_2)(1-\lambda_1)
+\end{align}
+$$
+
+Assim, é fácil ver que $p_n=(1-\lambda_1)(1-\lambda_2)...(1- \lambda_{n-1}) \lambda_n$.
+
+```{r}
+## Algoritmo do método da taxa de risco discreta
+risco <- function(p){
+  X <- 1
+  U <- runif(1)
+  lam <- p[1]
+  acum <- cumsum(p)
+  while(U >= lam & X< length(p)){
+    X <- X + 1
+    lam <- p[X]/(1-acum[X-1])
+    U <- runif(1)
+  }
+  return(X)
+}
+
+## B)
+#usaremos de exemplo a distribuicao do exercicio anterior
+X<-replicate(1E3,risco(probs))
+rbind(p.Gerados=table(X)/1E3,p.Teoricos= probs)
+
+```
+É visível que a amostra gerada tem proporções próximas ao parâmetro dado (probs).
+
+#### C) $\lambda_x$ quando $X\sim\text{Geom}(p)$
+
+$$
+\begin{aligned}
+  & \lambda_1 = p &&
+  \\
+  & \lambda_2 = \frac{(1-p)p}{1-p} = p
+  \\
+  & \lambda_3 = \frac{(1-p)^2p}{(1-p)-(1-p)p} = \frac{(1-p)p}{1-p}= p
+  \\
+  & \vdots
+  \\
+  & \lambda_n = \frac{p(1-p)^{n-1}}{1- p\sum^{n-1}_{j=1}(1-p)^{j-1}} = p
+\end{aligned}
+$$
+
+É fácil ver que a distribuição geométrica possui falta de memória, ou seja, a condicional $\lambda_n= \text P\{ X=n | X>n-1 \} = \text P(X=1) = p\quad$ não depende de $n$.
+
+Como $\lambda_n$ é constante, o algoritmo sorteia $U$ e soma 1 ao valor de $X$ até que $U < p$, ou seja, conta o número de tentativas onde o experimento "falha" até que haja um sucesso.
+
+```{r}
+#exemplo X~Geom(1/3)
+X<-replicate(1E3,risco( dgeom(0:9,prob=1/3) ))
+rbind(p.Gerados=table(X)/1E3,p.Teoricos= dgeom(0:9,prob=1/3))
+```
+
