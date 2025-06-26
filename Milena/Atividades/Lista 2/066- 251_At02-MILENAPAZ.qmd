@@ -39,50 +39,6 @@ for(n in c(100,1E3,1E4)){
 }
 ```
 
-# Questão 2
-
-::: {.callout-note appearance="minimal"}
-**Enunciado:** Apresente um código que gere os valores de X, onde:
-
-$$
-f_X(j)=P(X=j)= \left( \frac{1}{2} \right)^{j+1} 
-+\frac{\left( \frac{1}{2} \right)2^{j-1}}{3^j},\quad j=1,2,...
-$$
-
-:::
-
-Podemos observar que essa função de probabilidade é a mistura de duas geométricas: $G_1 \sim \text{Geom}(1/2)$ e $G_2 \sim \text{Geom}(1/3)$ ambas com $\alpha = 0.5$.
-
-```{r}
-# 1- Funcao geradora de Geometricas
-rGeom <- function(n,p){
-  U <- runif(n)
-  G <- log(U) %/% log(1-p) + 1
-  return(G)
-}
-# 2- Funcao geradora de X
-rMist <- function(n){
-  U <- runif(n)
-  X<- numeric(n)
-  caso1 <- U <= 0.5
-  #
-  X[caso1] <- rGeom( sum(caso1), 1/2 )
-  #
-  X[!caso1] <- rGeom( sum(!caso1), 1/3 )
-  #
-  return(X)
-}
-
-X <- rMist(1E3)
-
-#MONTANDO UMA TABELA PARA COMPARAR AS PROPORCOES GERADAS COM AS PROPORCOES TEORICAS
-tab.empirica <- table(X)/1E3
-valores <- sort(unique(X))
-tab.teorica <- dgeom(valores-1,1/2)*0.5 + dgeom(valores-1,1/3)*0.5
-
-rbind("Prop. Amostral"= tab.empirica,"Prop. Teorica"= tab.teorica)
-```
-
 # Questão 3
 
 ::: {.callout-note appearance="minimal"}
@@ -118,27 +74,10 @@ plot(ecdf(X))
 curve(pbinom(x,100,0.01),add=T,col="red",lwd=1.5,lty=2)
 ```
 
-# Questão 4
-
-::: {.callout-note appearance="minimal"}
-**Enunciado:** Seja $S_N= \sum^N_{i=1} e^{i/N}$, em que $N=10.000$.
-
-a. Explique como você poderia encontrar uma aproximação para $S_N$,
-usando 100 números aleatórios.
-
-b. Obtenha a aproximação de $S_N$.
-
-c. A aproximação obtida em (b) é boa?
-:::
-
-```{r}
-
-```
-
 # Questão 5
 
 ::: {.callout-note appearance="minimal"}
-Suponha que a variável aleatória X possa tomar qualquer um dos valores 1, 2,
+**Enunciado:** Suponha que a variável aleatória X possa tomar qualquer um dos valores 1, 2,
 ..., 10, com probabilidades 0,06; 0,06; 0,06; 0,06; 0,06; 0,15; 0,13; 0,14; 0,15; 
 0,13. Use a abordagem por composição (composite approach) para construir um
 algoritmo que gere os valores de X.
@@ -162,10 +101,391 @@ X<- geraComp(1E3,probs)
 rbind(p.Gerados=table(X)/1E3,p.Teoricos= probs)
 ```
 
-# Questão 6
+
+# Questão 7
 
 ::: {.callout-note appearance="minimal"}
-A variável aleatória $X$ tem função de probabilidade $p_j=\text P(X=j)$, $\sum^\infty_{j=1}p_j=1$. Seja:
+**Enunciado:** A distribuição binomial negativa, com parâmetros $r$ e $p$ tem função de
+probabilidade:
+
+$$
+p_n =  \text P\{ X=n \} = \binom{n-1}{r-1} p^r (1-p)^{n-r}\text{, para } n=r,r+1,...
+$$
+
+com média $\frac{r}{p}$ e variância $\frac{r(1-p)}{p^2}$.
+
+a. Gere 1000 valores dessa distribuição para r = 10 e p = 0,01; 0,10; 0,50.
+
+b. Elabore seus histogramas.
+
+c. Compare esses histogramas com as funções de probabilidade respectivas.
+
+d. Compare os resultados de seu gerador com aqueles obtidos com a função
+`rnbinom()`.
+
+:::
+
+```{r}
+U<- runif(10)
+
+rNBinom <- function(n, r, p){
+  # esse gerador simula uma binomial negativa
+  # contando as x tentativas ate que se obtenham r sucessos
+  Y<- numeric(n)
+  for(i in 1:n){
+    X <- 1
+    suc <-0
+    while(suc < r){
+      U<- runif(1)
+      if(U<=p) suc <- suc+1
+      X<- X+1
+    }
+    Y[i] <- X
+  }
+  return(Y)
+}
+
+#testando a geradora
+r<- 10
+p<- c(0.01,0.1,0.5)
+X<- sapply(p, rNBinom, n=1E3,r=r)
+
+## B) e C)
+#histogramas e funcoes probabilidade
+par(mfrow=c(3,1), mar=c(2,4,2,1))
+for(i in 1:3){
+  hist(X[,i], freq=F,breaks=25,
+       main=paste0("Histograma de X",i))
+  valores<- sort(unique(X[,i]))
+  lines(valores,dnbinom(valores-r,size=r,prob=p[i]),
+        lwd=2,lty=2,col="blue")
+}
+
+## D)
+# soma-se r aqui porque a parametrização dada por Ross é diferente da que o R usa
+# (Ross conta todas as tentativas e rnbinom() conta somente as "falhas")
+Y <- sapply(p, function(p) rnbinom(1E3, size=r, p) + r)
+
+#comparacao de cumulativas empíricas com a real
+par(mfrow=c(1,1))
+for(i in 1:3){
+  plot(ecdf(X[,i]),col="darkgreen",lwd=2,cex=.5,
+       main=paste0("ecdf de X",i,", Y",i, " ~ NB(r=10,p=",p[i],")"))
+  lines(ecdf(Y[,i]),col="magenta",lwd=2,cex=.5)
+  valores<- sort(unique(Y[,i]))
+  lines(valores,pnbinom(valores-r,size=r,prob=p[i]),
+        lwd=1,type="o",pch=19,cex=.5)
+  legend("bottomright",legend=c("amostra X","amostra Y","valor teorico"),
+       col=c("darkgreen","magenta","black"),lwd=c(2,2,1),pch=19)
+}
+
+
+tab<-list()
+for(i in 1:3){
+  tab[[i]]<- rbind(amostra=c(media=mean(X[,i]),variancia=var(X[,i])),
+                   amostra.R=c(media=mean(Y[,i]),variancia=var(Y[,i])),
+                   teoricos= c(r/p[i], r*(1-p[i])/p[i]^2))
+}
+names(tab) <- paste0("p",p)
+tab
+```
+
+As duas funções geradoras conseguem trazer resultados satisfatórios, a do R base sendo um pouco melhor.
+
+# Questão 9
+
+::: {.callout-note appearance="minimal"}
+
+### Geração de Números Aleatórios de Misturas:
+
+Implementação de código em R para construir e estudar o desempenho de geradores de
+números aleatórios de misturas de distribuições normais e de distribuições gama.
+Cada discente apresentará individualmente seus resultados para as seguintes composições de
+misturas: discentes com matrícula de final ímpar, devem resolver as composições
+ímpares; discentes com matrículas de final par, os pares \* .
+
+\*As misturas pares foram omitidas por não serem necessárias no desenvolvimento da questão
+
+- **Composição de Normais # 1 e 2:**
+
+$$
+ \sum_{k=0}^7 \frac{1}{8} 
+ \text{N}\left( 3\left[ \left(\frac{2}{3}\right)^k -1\right], \left(\frac{2}{3}\right)^{2k} \right)
+$$
+
+- **Composição de Normais # 3:**
+
+$$
+\frac{1}{2} \text N\left( -\frac{3}{2}, \left(\frac{1}{2}\right)^2 \right) + 
+\frac{1}{2} \text N\left( \frac{3}{2}, \left(\frac{1}{2}\right)^2 \right)
+$$
+
+- **Composição de Normais # 5:**
+
+$$
+\frac{1}{2} \text N(0,1) + \sum^4_{k=0} \frac{1}{10}
+\text N\left( \frac{k}{2}-1, \left( \frac{1}{10} \right)^2 \right)
+$$
+
+- **Composição de Gamas # 1:**
+
+$$
+\frac{2}{3}\text{Gamma}\left( \alpha = 11, \lambda= \frac{1}{20} \right) + 
+\frac{1}{3}\text{Gamma}\left( \alpha = 11, \lambda= \frac{7}{20} \right)
+$$
+
+#### Questões:
+
+a. Para cada uma das misturas listadas acima, calcular (ou aproximar) os
+valores exatos (populacionais) da média, da variância, do coeficiente de
+assimetria e do excesso de curtose
+
+b. Gerar n = 100 valores de cada mistura.
+
+c. Para cada amostra gerada, estimar os valores da média, da variância, do
+coeficiente de assimetria e do excesso de curtose. Comparar com os
+valores exatos e comentar. Quando possível, conduza um teste de
+hipóteses e tire suas conclusões em termos de significância estatística
+obtida no teste.
+
+d. Construa um histograma (DE DENSIDADE) de cada amostra e
+compare-o com a curva da densidade exata da mistura correspondente.
+Em seu gráfico, acrescente uma estimação suavizada da densidade por
+meio da função `density()`. Comente suas observações sobre a
+visualização obtida. Conduza também um teste de $\mathcalχ^2$, baseando-se na
+quantidade de valores observados em 10 intervalos equiprováveis no
+suporte obtido pela sua amostra. Com base no resultado do teste de
+hipóteses, conclua sobre a qualidade de seu gerador.
+
+e. Para cada amostra, construa o gráfico da função de distribuição empírica
+dos valores gerados. Acrescente em sua visualização o gráfico da função
+de distribuição acumulada da mistura correspondente e comente.
+Conduza um teste de Kolmogorov-Smirnof e comente sua conclusão
+sobre o desempenho de seu gerador.
+:::
+
+Primeiro irei salvar os parâmetros de cada mistura:
+
+```{r}
+#lista das misturas
+m<-list()
+## Normais
+#MISTURA 1
+m$mist1 <- list()
+m$mist1$mi <- 3*((2/3)^(0:7)-1)
+m$mist1$sig <- (2/3)^(0:7)
+m$mist1$probs <- rep(1/8,8)
+
+#MISTURA 2
+m$mist2 <- list()
+m$mist2$mi <- c(-1.5,1.5)
+m$mist2$sig <- c(0.5,0.5)
+m$mist2$probs <- c(0.5,0.5)
+
+#MISTURA 3
+m$mist3 <- list()
+m$mist3$mi <- c(0, (0:4)/2-1)
+m$mist3$sig <- c(1,rep(0.1,5))
+m$mist3$probs <- c(0.5,rep(0.1,5))
+
+## Gama
+#MISTURA 4
+m$mist4 <- list()
+m$mist4$a <- c(11,11)
+m$mist4$probs <- c(2/3,1/3)
+m$mist4$lam <- c(1/20,7/20)
+```
+
+
+#### A) Cálculo dos momentos
+
+Primeiramente devemos saber que, sejam $M$ uma mistura de $n$ V.As $X_k$ e $H(.)$ uma função
+para a qual $\text E[H(X_K)]$ existe, e que as densidades $f_k(x)$ existem:
+
+$$
+\text E[H(M)] = \int^\infty_{-\infty}H(x)\sum^{n}_{k=1} \omega_kf_k(x)dx=\sum^{n}_{k=1}\int^\infty_{-\infty}H(x)f_k(x)dx=
+\sum^{n}_{k=1}\omega_k\text E[H(X_k)]
+$$
+
+onde $\omega_k$ são os pesos de cada parcela da mistura $M$ e $\sum^n_{k=1}\omega_k=1$.
+
+```{r}
+#funcao momento para as gamas
+#(vetorizada para varios parametros lambda e alfa)
+momentoGama <- function(n,lam,a){
+    return(1/(lam^n)*sapply(a,function(a)prod(a+(1:n)-1)))
+  }
+```
+
+
+#### Média ($\mu_M$)
+
+Para as composições normais é fácil obter as médias populacionais, já que estão explícitas pelo parâmetro $\mu$:
+
+Por exemplo, para a mistura # 1 ($M_1$):
+
+$$
+\begin{aligned}
+\mu_{M_1}=\text E[M_1] = \text E\left[ \frac{1}{8}\sum^8_{k=1} X_k \right] = \frac{1}{8} E\left[\sum^7_{k=1} X_k \right]=
+\frac{1}{8}\sum^8_{k=1}  E[X_k] = \frac{3}{8}\sum^7_{k=0}  \left(\frac{2}{3}\right)^k - 1 &&
+\end{aligned}
+$$
+
+No caso geral, nós temos que:
+
+$$
+\begin{aligned}
+\text E[M_i] =\sum^{n}_{k=1} \omega_kE[X_k], &&
+\end{aligned}
+$$
+
+```{r}
+#funcao calcMedia
+calcMedia <- function(mist,gamma=F){
+  if(gamma) return( sum( mist$probs*momentoGama(1,mist$lam,mist$a)) )
+  return(sum(mist$probs*mist$mi))
+}
+#medias misturas
+for(i in 1:4){
+  print(m[[i]]$media <- calcMedia(m[[i]],i==4))
+}
+```
+
+#### Variância ($\sigma_M^2$)
+
+Para calcular a variância, temos:
+
+$$
+\text{Var}(M_i)= \text E[M_i^2] - \mu_{M_i}^2 = \sum^{n}_{k=1} \omega_kE[X_k^2] - \mu_{M_i}^2 =
+\sum^{n}_{k=1} \omega_k(\sigma^2_{X_k}+\mu^2_{X_k}) - \mu_{M_i}^2
+$$
+
+```{r}
+#funcao calcVar
+calcVar <- function(mist,gamma=F){
+  if(gamma){
+    medias <- mist$a/mist$lam;    vars <- mist$a/mist$lam^2
+  }
+  else{
+    medias <- mist$mi;    vars <- mist$sig^2
+  }
+  return(sum(mist$probs*(vars+medias^2)) - mist$media^2)
+}
+#variancias misturas
+for(i in 1:4){
+  print(m[[i]]$var <- calcVar(m[[i]],i==4))
+}
+```
+
+#### Assimetria $( \text{Skew}(M) )$
+
+A assimetria é obtida pelo momento padronizado:
+
+$$
+\text{Skew}(A)=\text E\left[\left( \frac{A-\mu_A}{\sigma_A} \right)^3 \right]=
+\frac{\text E[A^3] - 3\mu_A\sigma_A^2-\mu_A^3}{\sigma^3_A}
+$$
+
+Aplicando-o a uma mistura:
+
+$$
+\text{Skew}(M) = \frac{\text E[M^3] - 3\mu_M\sigma_M^2-\mu_M^3}{\sigma^3_M}=
+\frac{\sum^{n}_{k=1}\omega_k\text E[X_k^3] - 3\mu_M\sigma_M^2-\mu_M^3}{\sigma^3_M}
+$$
+
+```{r}
+#funcao calcAssim
+calcAssim <- function(mist,gamma=F){
+  if(gamma)
+    Assim <- with(mist, (sum(probs*momentoGama(3,lam,a))-3*media*var-media^3)/var^1.5)
+  return(Assim)
+}
+
+calcAssim(m$mist4,gamma=T)
+```
+
+
+# Questões Pares
+
+Algumas questões que eu não precisava fazer, mas fiz mesmo assim (porque eu esqueci que era só para fazer as ímpares).
+
+## Questão 2
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Apresente um código que gere os valores de X, onde:
+
+$$
+f_X(j)=P(X=j)= \left( \frac{1}{2} \right)^{j+1} 
++\frac{\left( \frac{1}{2} \right)2^{j-1}}{3^j},\quad j=1,2,...
+$$
+
+:::
+
+Podemos observar que essa função de probabilidade é a mistura de duas geométricas: $G_1 \sim \text{Geom}(1/2)$ e $G_2 \sim \text{Geom}(1/3)$ ambas com $\alpha = 0.5$.
+
+```{r}
+# 1- Funcao geradora de Geometricas
+rGeom <- function(n,p){
+  U <- runif(n)
+  G <- log(U) %/% log(1-p) + 1
+  return(G)
+}
+# 2- Funcao geradora de X
+rMist <- function(n){
+  U <- runif(n)
+  X<- numeric(n)
+  caso1 <- U <= 0.5
+  #
+  X[caso1] <- rGeom( sum(caso1), 1/2 )
+  X[!caso1] <- rGeom( sum(!caso1), 1/3 )
+  return(X)
+}
+
+X <- rMist(1E3)
+
+#MONTANDO UMA TABELA PARA COMPARAR AS PROPORCOES GERADAS COM AS PROPORCOES TEORICAS
+tab.empirica <- table(X)/1E3
+valores <- sort(unique(X))
+tab.teorica <- dgeom(valores-1,1/2)*0.5 + dgeom(valores-1,1/3)*0.5
+
+rbind("Prop. Amostral"= tab.empirica,"Prop. Teorica"= tab.teorica)
+```
+
+
+## Questão 4
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Seja $S_N= \displaystyle\sum^N_{i=1} e^{i/N}$, em que $N=10.000$.
+
+a. Explique como você poderia encontrar uma aproximação para $S_N$,
+usando 100 números aleatórios.
+
+b. Obtenha a aproximação de $S_N$.
+
+c. A aproximação obtida em (b) é boa?
+:::
+
+Podemos aproximar o valor de $S_N$ por meio de uma média $\mu=\frac{S_N}{N}$, a qual
+pode ser estimada por uma média amostral.
+
+#### Implementação
+
+```{r}
+N<- 1E4
+exata <- sum(exp((1:1E4)/N))
+
+U <- trunc(runif(100,1,N))
+estimativa <- mean(exp(U/N))*1E4
+
+cbind(exata,estimativa)
+```
+
+Temos uma estimativa decente, mas que pode ser melhorada (aumentando o tamanho da amostra).
+
+## Questão 6
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** A variável aleatória $X$ tem função de probabilidade $p_j=\text P(X=j)$, $\displaystyle\sum^\infty_{j=1}p_j=1$. Seja:
 
 $$
 \lambda_n =  \text P\{ X=n | X>n-1 \} = \frac{p_n}{1-\sum^{n-1}_{j=1}p_j}, \quad j=1,2,...
@@ -219,6 +539,7 @@ Assim, é fácil ver que $p_n=(1-\lambda_1)(1-\lambda_2)...(1- \lambda_{n-1}) \l
 
 ```{r}
 ## Algoritmo do método da taxa de risco discreta
+
 risco <- function(p){
   X <- 1
   U <- runif(1)
@@ -252,17 +573,10 @@ $$
   \\
   & \vdots
   \\
-  & \lambda_n = \frac{p(1-p)^{n-1}}{1- p\sum^{n-1}_{j=1}(1-p)^{j-1}} = p
+  & \lambda_n = \frac{p(1-p)^{n-1}}{1- p \sum^{n-1}_{j=1} (1-p)^{j-1}} = p
 \end{aligned}
 $$
 
-É fácil ver que a distribuição geométrica possui falta de memória, ou seja, a condicional $\lambda_n= \text P\{ X=n | X>n-1 \} = \text P(X=1) = p\quad$ não depende de $n$.
+É fácil ver que a distribuição geométrica possui falta de memória, ou seja, a condicional $\lambda_n= \text P\{ X=n | X>n-1 \} = \text P(X=1) = p$ não depende de $n$.
 
-Como $\lambda_n$ é constante, o algoritmo sorteia $U$ e soma 1 ao valor de $X$ até que $U < p$, ou seja, conta o número de tentativas onde o experimento "falha" até que haja um sucesso.
-
-```{r}
-#exemplo X~Geom(1/3)
-X<-replicate(1E3,risco( dgeom(0:9,prob=1/3) ))
-rbind(p.Gerados=table(X)/1E3,p.Teoricos= dgeom(0:9,prob=1/3))
-```
-
+Como $\lambda_n$ é constante, o algoritmo sorteia $U$ e soma 1 ao valor de $X$ até que $U < p$, ou seja, conta o número de tentativas onde o experimento "falha" e termina quando haja um sucesso.
