@@ -529,13 +529,33 @@ No geral, as amostras tiveram média e variâncias consistentes com seus valores
 #### D) Histograma das amostras
 
 ```{r}
+
+##FUNCOES DE DISTRIBUIÇÃO ACUMULADA##
+pMisturaNorm <- function(x,mi,dp,probs){
+  n <- length(mi)
+  if(length(x)==1)
+    return(sum(probs*pnorm(x,mi,dp)))
+  #
+  return(rowSums(sapply(1:n,function(k) probs[k]*pnorm(x,mi[k],dp[k]))))
+} #misturas normais
+
+pMisturaGama <- function(x,a,lam,probs){
+  n <- length(a)
+  if(length(x)==1)
+    return(sum(probs*pgamma(x,a,rate=lam)))
+  #
+  return(rowSums(sapply(1:n,function(k) probs[k]*pgamma(x,a[k],rate=lam[k]))))
+} #misturas gama
+
+##FUNCOES DENSIDADE DE PROBABILIDADE##
+
 dMisturaNorm <- function(x,mi,dp,probs){
   n <- length(mi)
   if(length(x)==1)
     return(sum(probs*dnorm(x,mi,dp)))
   #
   return(rowSums(sapply(1:n,function(k) probs[k]*dnorm(x,mi[k],dp[k]))))
-} #funcao densidade de misturas normais
+} #normais
 
 dMisturaGama <- function(x,a,lam,probs){
   n <- length(a)
@@ -543,8 +563,25 @@ dMisturaGama <- function(x,a,lam,probs){
     return(sum(probs*dnorm(x,a,rate=lam)))
   #
   return(rowSums(sapply(1:n,function(k) probs[k]*dgamma(x,a[k],rate=lam[k]))))
-} #funcao densidade de misturas gama
+} #misturas gama
 
+##FUNCAO QUANTILICA (POR APROXIMACAO)##
+
+qMistura <- function(p,mist,limite=c(-1E4,1E4),gamma=F)
+{
+  if(gamma)
+    equacao <- function(x)
+      return(pMisturaGama(x,mist$a,mist$lam,mist$probs) - p)
+  else
+    equacao <- function(x)
+      return(pMisturaNorm(x,mist$mi,mist$sig,mist$probs) - p)
+  return( uniroot(equacao,limite)$root ) 
+}
+
+```
+
+
+```{r}
 for(i in 1:4){
   hist(amostra[,i],freq=F,breaks=25,main=paste("Histograma da Mistura", i))
   op<- par(no.readonly = T)
@@ -562,36 +599,38 @@ for(i in 1:4){
   legend("topright",legend=c("Dens. empírica","Dens. teórica"),
        col=c("magenta","darkgreen"),lwd=2,lty=2:1,bty="n")
 }
+rm(op)
 ```
 
 As amostras parecem bem ajustadas às densidades teóricas.
 
+Teste Qui-Quadrado:
+
+$$
+\begin{aligned}
+& H_o: \text{A amostra está distribuida uniformemente nas caselas}
+\\
+& H_a: \text{Caso contrário}
+\end{aligned}
+$$
+
 ```{r}
-#dividindo as amostras em 10 intervalos equiprovaveis
-partes<-apply(amostra,2, function(a) cut(a, quantile(a,seq(0,1,.1)) ) )
-tabelas <- apply(partes,2,table)
-#desculpa n entendi muito oq e pra fazer nesse test qui-quadrado kk
+partes <- matrix(ncol=4,nrow=100)
+for(i in 1:4){
+  quantis <- sapply((0:10)/10, function(p) qMistura(p, m[[i]],gamma= i==4))
+  partes[,i]<- cut(amostra[,i],quantis)
+}
+
+tabela <- apply(partes,2,table)
+
+apply(tabela,2,chisq.test)
 ```
+
+Os testes Qui-Quadrado resultaram em p-valores insuficientes para rejeitar a hipótese nula.
 
 #### E) Gráficos da acumulada empírica
 
 ```{r}
-pMisturaNorm <- function(x,mi,dp,probs){
-  n <- length(mi)
-  if(length(x)==1)
-    return(sum(probs*pnorm(x,mi,dp)))
-  #
-  return(rowSums(sapply(1:n,function(k) probs[k]*pnorm(x,mi[k],dp[k]))))
-} #funcao distribuicao acumulada de misturas normais
-
-pMisturaGama <- function(x,a,lam,probs){
-  n <- length(a)
-  if(length(x)==1)
-    return(sum(probs*pgamma(x,a,rate=lam)))
-  #
-  return(rowSums(sapply(1:n,function(k) probs[k]*pgamma(x,a[k],rate=lam[k]))))
-} #funcao distribuicao acumulada de misturas gama
-
 for(i in 1:4){
   plot(ecdf(amostra[,i]),main=paste("FDA empírica da Mistura", i))
   op<- par(no.readonly = T)
