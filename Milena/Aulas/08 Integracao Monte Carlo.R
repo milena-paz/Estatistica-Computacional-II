@@ -2,7 +2,7 @@
 #obj: resolução de integrais definidas usando números aleatórios.
 
 
-# * Integrais do tipo theta= integral (calculada em [0,1]) de g(x)dx ----
+## * Integrais do tipo theta= integral (calculada em [0,1]) de g(x)dx ----
 #   Seja U~Unif(0,1):
 #   theta= E(g(U)) = integral(de 0 a 1) de g(x)*f_U(x)*dx; onde f_U(x) = 1
 #   Assim, temos o seguinte algoritmo para estimar theta:
@@ -106,3 +106,51 @@ medias
 ep <- apply(aprox,2,sd)
 names(ep) <- n
 ep
+
+
+## * INTEGRAIS NO INTERVALO (0,Inf) ----
+# 1- Substituição Y = 1/(X-1):
+#   X = 1/y - 1
+#   quando X-> 0, Y==1
+#   quando X-> Inf, Y==0
+#   Jacobiano: J(y)= -1/y^2
+# 2- Volta à linha 10 da nota de aula
+
+
+### EXEMPLO
+# theta = Integral do 0 ao Inf de exp(-x^2)
+# Valor Real: 
+theta <- sqrt(pi)/2
+
+h <- function(y){
+  exp(-(1/y - 1)^2)/y^2
+}
+#estimando
+U <- runif(1E3)
+est <- mean(h(U))
+
+c(estimativa=est,valor.real=theta)
+
+estima<- function(n){
+  U <- runif(n)
+  return(mean(h(U)))
+}
+n<- c(1E3,5E3,1E4,1E5)
+X<- t(replicate(1E3, sapply(n,estima)))
+amp <- range(X)
+#media das estimativas para cada n
+medias <- round(apply(X,2,mean),3)
+#desvio padrao das estimativas para cada n
+dp <- round(apply(X,2,sd),3)
+
+par(mfrow=c(2,2),mar=c(2,4.1,2,1))
+for(i in 1:4){
+  hist(X[,i],xlim=amp,freq=F,breaks=50,ylim=c(0,220),
+       border="gray30",
+       main=paste0("n=",n[i]))
+  abline(v=theta,col="blue",lwd=2,lty=2)
+  lines(density(X[,i]), col="darkgreen",lwd=2.5)
+  text(x=.94,y=210,bquote(theta == .(round(theta,3))))
+  text(x=.94,y=190,bquote(bar(X) == .(medias[i])))
+  text(x=.94,y=170,paste("ep =", dp[i]))
+}
