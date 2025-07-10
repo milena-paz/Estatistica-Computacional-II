@@ -38,6 +38,8 @@ jogo.gato.rato(1e3)
 rademacher <- function()
   {return(2*rbinom(1,1,0.5)-1)}
 
+ajuste <- function(x) {return(abs(abs(x-5)-4)+1)}
+
 jogo.arcaico <- function()
 {
   gato <- 1
@@ -45,8 +47,8 @@ jogo.arcaico <- function()
   contador <- 0
   while(gato!=rato)
   {
-    gato <- abs((-(gato + rademacher()))%%5 - 5)
-    rato <- abs((-(rato + rademacher()))%%5 - 5)
+    gato <- ajuste(gato + rademacher())
+    rato <- ajuste(rato + rademacher())
     print(paste("gato:",gato,"rato:",rato))
     contador <- contador + 1
   }
@@ -54,3 +56,5 @@ jogo.arcaico <- function()
 }
 
 jogo.arcaico()
+
+mean(replicate(1e4,jogo.arcaico()))
