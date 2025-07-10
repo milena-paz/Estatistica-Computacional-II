@@ -1,0 +1,266 @@
+---
+title: "066-251_At03-BernardoFerreira"
+author: "Bernardo Ferreira"
+date: "2025-07-09"
+output: html_document
+---
+
+<style>
+  body{
+  font-family: 'Roboto Mono', 'Helvetica';
+  font-size: 14pt;
+  line-height: 1.1  ;
+  color: #FDFFFC;
+  background-color: #153451;
+}
+
+#TOC {
+  color: #C1292E; 
+}
+
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+    z-index: 2;
+    color: #F1D302;
+    background-color: #020100;
+    border-color: #337ab7;
+}
+
+</style>
+
+# Q1. Use simulações para aproximar as seguintes integrais:
+
+## a.
+
+$$
+\Huge \int_0^1 \text{exp} \{ e^x\}dx
+$$
+
+Essa integral não precisa de transformação nenhuma para estar no intervalo 0,1 então interpretaremos como $\mathbb E[g(x)]$ de uma uniforme, onde:
+
+$$
+\Huge \sum_{i=1} ^ n \frac {g(U_i)} n 
+$$
+
+É um ótimo estimador para $\mathbb E[g(u)]$, já que pelo T.L.C. isso tende a uma normal de $\mu = \mathbb E[g(x)]$ e com uma variância inversamente proporcional a n.
+
+```{r}
+Integral_mcm <- function(n,funcao)
+{
+  valores <- runif(n)
+  return(mean(funcao(valores)))
+}
+Questao1 <- function(x) exp(exp(x))
+Integral_mcm(1e4,Questao1)
+```
+
+## b.
+
+Essa envolve uma transformação para interpretarmos como a $\mathbb E[g(x)]$ de uma uniforme 0 1.
+
+Mas é fácil ver que:
+
+$$
+\Large \int_a^bg(x)dx=\int_0^1f(u)du\\
+\Large x=(b-a)u+a,dx=(b-a)du\\
+\Large u \to 0 \implies x\to a, u \to 1 \implies x \to b\\
+\Large \int _0^1f((b-a)u + a)(b-a)du = \int_a^bg(x)dx
+$$
+
+```{r}
+# "atualizando" a minha funcao, para incluir qualquer intervalo
+integral_mcm <- function(n,funcao,a=0,b=1)
+{
+  # isso gera uma uniforme(a,b)
+  valores <- runif(n)*(b-a) + a
+  return(mean(funcao(valores)*(b-a)))
+}
+Questao2 <- function(x) exp(x + x^2)
+integral_mcm(1e4,Questao2,a=-2,b=2)
+```
+
+## c.
+
+Essa integral vai de 0 a $\infty$, preciso de outra parametrização para resolver ela.
+
+$$
+\Large \int_0^{\infty}g(x)dx, y= \frac 1 {1+x},dy=-\frac 1{(1+x)^2}dx\\
+\Large x= \frac 1 y - 1, dx = - \frac 1 {y^2}dy \\
+\Large x \to 0 \implies y\to 1, x \to \infty \implies y\to0 \\
+\Large -\int_1^0f(\frac 1 y -1) \frac {dy}{y^2} = \int_0^1f(\frac 1 y -1) \frac {dy}{y^2}
+$$
+
+```{r}
+mcm_infinito <- function(n,funcao)
+{
+  valores <- runif(n)
+  return(mean(funcao(1/valores - 1)/valores^2))
+}
+Questao3 <- function(x) return(x/((1+x^2)^2))
+mcm_infinito(1e4,Questao3)
+```
+
+## d. 
+
+Uma função multivariada integrada no quadrado (1,0,1,0) pode ser enxergada como:
+
+$$
+\Large X\sim U(0,1)\space \space  Y\sim U(0,1)\\
+\Large \int_0^1\int_0^1 g(x,y)dxdy = \mathbb E[g(x,y)]
+$$
+
+A mesma ideia do T.L.C. se mantém, $g(X,Y)$ é uma variável aleatória, e seu somatório dividido por n vai convergir em uma normal com a média $\mathbb E[g(x,y)]$ e variância inversamente proporcional a n.
+
+```{r}
+integral_mcm_dupla <- function(n,funcao)
+{
+  valoresx <- runif(n)
+  valoresy <- runif(n)
+  return(mean(funcao(valoresx,valoresy)))
+}
+Questao4 <- function(x,y) exp((x+y)^2)
+integral_mcm_dupla(1e4,Questao4)
+```
+
+## e.
+
+Essa integral pode ser interpretada por $\mathbb E[g(x,y)]$ após duas transformações.
+
+$$
+\Large \int_0^{\infty}\int_0^x f(x,y) dydx\\
+\Large x= \frac 1 u -1,dx = - \frac 1 {u^2}du\\
+\Large u \to 1 \implies x \to 0 ,u \to 0 \implies x \to \infty\\
+\Large \int_0^1\int_0^{\frac 1 u -1}f(\frac 1 u -1)dy \frac {du}{u^2}
+$$
+
+Note que essa foi a mesma transformação da letra c, então pulei alguns passos.
+
+$$
+\Large \int_0^1\int_0^{\frac 1 u -1}f(\frac 1 u -1,y)dy \frac {du}{u^2}\\
+\Large y = (\frac 1 u -1)v, dy=(\frac 1 u -1)dv\\
+\Large v\to 0\implies y\to 0, v\to1\implies y\to (\frac 1 u -1)\\
+\Large \boxed{\int_0^1\int_0^1 (\frac 1 u -1)f(\frac 1 u -1,(\frac 1 u - 1)v)\frac {dudv}{u^2}}
+$$
+
+```{r}
+mcm_infinito_dupla <- function(n,funcao)
+{
+  valoresu <- runif(n)
+  valoresv <- runif(n)
+  
+  valoresx <- 1/valoresu - 1
+  valoresy <- valoresx*valoresv
+  
+  return(mean(valoresx*funcao(valoresx,valoresy)/(valoresu^2)))
+}
+Questao5 <- function(x,y) exp(-x-y)
+mcm_infinito_dupla(1e4,Questao5)
+```
+
+# 2. Use simulação para aproximar o valor de: Cov(U,$e^U$)
+
+```{r}
+estimar.covariancia <- function(n)
+{
+  uniformes <- runif(n)
+  exponenciais.u <- exp(uniformes)
+  return(cov(uniformes,exponenciais.u))
+}
+estimar.covariancia(1e4)
+```
+
+# 3. $U_1,U_2,... \stackrel{i.i.d.}{\sim} U(0,1)$ Defina:
+
+$$
+\Large N= min\{n:\sum_{i=1}^n U_i >1\}
+$$
+
+N é a quantidade de números aleatórios entre 0 e 1 que devem ser somados para exceder 1
+
+## a. b. c.
+
+Estime N gerando 100 1000 e 10000 valores.
+
+Eu fiz uma função que encontra o número de somas que precisou até ultrapassar 1, e então eu uso replicate nela. Eu usei n= 1000 para garantir que a soma iria ultrapassar 1, eu queria que a função fosse vetorizada, e um while não deixaria isso.
+
+```{r}
+N.estimador <- function(n=1000)
+{
+  valores <- runif(n)
+  #soma acumulada dos meus valores
+  acumulados <- cumsum(valores)
+  #vetor com "quais valores ja passaram de 1?"
+  booleano <- acumulados > 1
+  # vetor com "contagem de elementos a partir de quando a soma passou 1"
+  booleano <- cumsum(booleano)
+  #devolve o elemento exato onde a soma ultrapassa 1
+  return(which(booleano==1))
+}
+mean(replicate(100,N.estimador()))
+mean(replicate(1000,N.estimador()))
+mean(replicate(10000,N.estimador()))
+```
+
+## d. 
+
+Qual o valor exato de $\mathbb E[N]$?
+
+Para isso vou definir a V.A. $Y$, a soma de n uniformes(0,1) seguem uma distribuicao de ![Irwin Hall](en.wikipedia.org/wiki/Irwin–Hall_distribution) :
+
+$$
+\Large Y =\sum_{i=1}^n U_i \space ,\space Y\sim IrwinHall(n)\\
+\Large f_{Y_n}(x) = \frac {1}{(n-1)!}\sum_{k=0}^{\lfloor{x}\rfloor} (-1)^k{n\choose k}(x-k)^{n-1}\\
+\Large F_{Y_n}(x)= \frac 1 {n!} \sum_{k=0}^{\lfloor{x}\rfloor} (-1)^k{n\choose k}(x-k)^{n}
+$$
+
+Mas usando as acumuladas de $Y$ fica:
+
+$$
+\Large \mathbb P(Y_{n}<1) = \frac 1 {n!}  \\
+\Large \mathbb P(Y_n \geq 1)= 1 - \frac 1 {n!}
+$$
+
+(aquela soma fica 1 se x=1 e k=0, e fica 0 se x=1 e k = 1).
+
+Entao criamos a V.A. N, ela significa "a soma ultrapassar 1 em n termos", e ela fica 
+
+$$
+\Large N=
+\begin{cases}
+\mathbb P(N < n)=\mathbb P(Y_n\geq1)\\
+\mathbb P(N \geq n)=  P(Y_n<1)
+\end{cases} \space  \forall \space n \in \mathbb N -1
+$$
+
+Note que N nao pode ser 0 ou 1, nao podemos pegar um uniforme(0,1) e ela ser maior q um.
+
+O raciocinio por tras de 
+
+Temos a acumalada de N:
+
+$$
+\Large F_N(n) = (1-\frac {1}{n!})
+$$
+
+Pela definicao da acumulada em V.A.'s discretas temos que:
+
+$$
+\Large F_X(n) = \sum _{k=-\infty} ^nf_X(k) \implies F_X(n) - F_X(n-1) = f_X(n)\\
+\Large F_X(n) = f_X(n) + \sum _{k=-\infty} ^{n-1} f_X(k)\\
+\Large F_X(n-1) = \sum _{k=-\infty} ^{n-1} f_X(k)
+$$
+
+Entao, temos a funcao de massa de N
+
+$$
+\Large f_N(x) = (1 - \frac 1 {n!}) -(1 - \frac 1 {(n-1)!}) \\
+\Large =\frac 1 {(n-1)!} - \frac 1 {n!}=\frac {n}{n(n-1)!} - \frac 1 {n!} \\
+\Large \boxed {f_N(n)=\frac {n-1}{n!}} \space \forall n \in \{2,3,4,...\}
+$$
+
+E com isso podemos encontrar $\mathbb E[N]$:
+
+$$
+\Large \mathbb E[N]=\sum_{n=2}^\infty \frac {n(n-1)}{n!}\\
+\Large = \sum_{n=2}^\infty \frac {n!}{n!(n-2)!}=\sum_{n=2}^\infty \frac {1}{(n-2)!}\\
+\Large i = n-2 \implies \mathbb E[N]=\sum_{k=0}^\infty \frac 1{k!}=e
+$$
