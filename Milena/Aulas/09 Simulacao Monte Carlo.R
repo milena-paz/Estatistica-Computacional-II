@@ -1,4 +1,4 @@
-### SIMULAÇÃO DE MONTE CARLO ###
+#### SIMULAÇÃO DE MONTE CARLO ####
 #matriz de adjacências de um grafo
 M <- matrix(c(1,1,0,0,1,
               1,0,1,1,0,
@@ -49,6 +49,27 @@ p<- c(0.8,0.8,0.5,0.8,0.8)
 Sim <- replicate(Nsim, simula(p))
 mean(Sim)
 ## qte de componentes redundantes para q P{Funcionar} > 0.99
+
+##FUNCAO PARA O CIRCUITO QUE ELE POS NO QUADRO
+
+simula2 <- function(p){
+  C <- sapply(p, function(p) rbinom(1,1,p))
+  M<- matrix(0,nrow=5,ncol=5)
+  M[1,-1] <- c(C[1],C[3],C[5],C[4])
+  M[-1,5] <- c(C[2],C[2],C[6],1)
+  passos <- M %*% M %*% M
+  funciona <- min(passos[1,5], 1)
+  return(funciona)
+}
+#exemplo
+# p=1/2 para todas as 6 chaves
+p <- rep(0.5,6)
+Nsim <- 1E3
+Sim<- replicate(Nsim, simula2(p))
+#resp teorica:
+p <- 0.5; p+3*p**2-4*p**3-p**4+3*p**5-p**6
+# resultado simulacao:
+mean(Sim)
 
 #### O GATO E O RATO ####
 # Suponha que você tenha um timer e uma fila de 5 caixas, com um gato na 1ª caixa
