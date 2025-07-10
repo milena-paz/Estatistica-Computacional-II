@@ -1,4 +1,4 @@
-#### SIMULAÇÃO DE MONTE CARLO ####
+### SIMULAÇÃO DE MONTE CARLO ###
 #matriz de adjacências de um grafo
 M <- matrix(c(1,1,0,0,1,
               1,0,1,1,0,
@@ -49,7 +49,6 @@ p<- c(0.8,0.8,0.5,0.8,0.8)
 Sim <- replicate(Nsim, simula(p))
 mean(Sim)
 ## qte de componentes redundantes para q P{Funcionar} > 0.99
-
 ##FUNCAO PARA O CIRCUITO QUE ELE POS NO QUADRO
 
 simula2 <- function(p){
@@ -128,6 +127,7 @@ sapply(S,function(sim){
 )
 
 #### FUNCAO DE JOGO DO ARTHUR
+
 pos<- function(x){
   if(x==1) return(x+1)
   if(x==5) return(x-1)
@@ -145,3 +145,111 @@ jogo <- function(rato=1,gato=5){
   cat("Rato morreu!")
 }
 jogo()
+
+
+#### PROBLEMA DA RUÍNA DO JOGADOR ####
+# O jogador tem probabilidade p de ganhar R$1,00 e (1-p) de perder R$1,00.
+#Suponha que o jogador iniciou o jogo com i reais.
+#A) Assumindo que as sucessíveis jogadas sejam independentes, qual é a probabi-
+# lidade de que a fortuna alcance N reais antes de o jogador perder tudo?
+#B) Qual é o numero médio de jogadas até chegar a N reais?
+#C) Qual é o número médio de jogadas até que ele perca tudo?
+#dado:
+p<- 0.4
+i<-3
+N<- 7
+
+simula <- function(p){
+  fort <- i
+  cont <- 0
+  while(fort>0 && fort <N){
+    fort <- fort+ (-1)^as.numeric(runif(1)>p)
+    cont <- cont+1
+  }
+  return(c(cont, fort==N))
+}
+
+X<- t(replicate(1E3,simula(p)))
+#A)
+mean(X[,2])
+#B)
+mean(X[X[,2]==1,1])
+#C)
+mean(X[X[,2]==0,1])
+
+#Simulacao sem limite superior
+simula <- function(p,N){
+  fort <- i
+  cont <- 0
+  #alvo <-0
+  while(fort>0){
+    fort <- fort+(-1)^as.numeric(runif(1)>p)
+    #alvo <- alvo + as.numeric(fort >=N)
+    cont <- cont+1
+  }
+  #return(c(cont,alvo))
+  return(cont)
+}
+#X<- t(replicate(1E3,simula(p,N)))
+X <- replicate(1E3,simula(p,N))
+mean(X[,2]>0)
+
+#Simulacao em que o apostador joga uma moeda para decidir se aposta denovo ou nao
+simulaMoeda <- function(p){
+  fort <- i
+  cont <- 0
+  moeda <-1
+  while(fort>0 && moeda>0.5){
+    fort <- fort+(-1)^as.numeric(runif(1)>p)
+    cont <- cont+1
+    moeda <- runif(1)
+  }
+  return(c(cont,fort))
+}
+Xmoeda<- t(replicate(100,simulaMoeda(p)))
+
+mean(Xmoeda)
+#probabilidade do jogador iniciar em i e atingir 1real antes de chegar a N reais?
+# valor real: 0.8795
+#probabilidade de começar em 2 e quebrar antes de atingir 6 reais?
+#probabilidade de atingir 2 antes de chegar a 4 reais
+
+##Sem jogar uma moeda
+simula2 <- function(p,inferior=0,superior,fort){
+  cont <- 0
+  while(fort>inferior && fort <superior){
+    fort <- fort+ (-1)^as.numeric(runif(1)>p)
+    cont <- cont+1
+  }
+  return(c(cont,fort==inferior))
+}
+# I)
+X <- t(replicate(1E3, simula2(p,1,N,i)))
+mean(X[,2])
+# II)
+X <- t(replicate(1E3, simula2(p,superior=6,fort=2)))
+mean(X[,2])
+# III)
+X <- t(replicate(1E3, simula2(p,inferior=2,superior=4,i)))
+1-mean(X[,2])
+
+##jogando uma moeda
+simula3 <- function(p,inferior=0,superior,fort){
+  cont <- 0
+  U<-1
+  while(fort>inferior && fort <superior && U>0.5){
+    fort <- fort+ (-1)^as.numeric(runif(1)>p)
+    cont <- cont+1
+    U<- runif(1)
+  }
+  return(c(cont,fort==inferior))
+}
+# I)
+X <- t(replicate(1E3, simula3(p,1,N,i)))
+mean(X[,2])
+# II)
+X <- t(replicate(1E3, simula3(p,superior=6,fort=2)))
+mean(X[,2])
+# III)
+X <- t(replicate(1E3, simula3(p,inferior=2,superior=4,i)))
+1-mean(X[,2])
