@@ -1,0 +1,254 @@
+---
+title: "Atividade 3 - Integração Monte Carlo"
+subtitle: "EST066 - 2025.1"
+author: "Milena Paz Freitas"
+format: html
+lang: "pt-BR"
+self-contained: true
+toc: true
+editor: source
+---
+
+# Questão 1
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Use a simulação para aproximar as integrais relacionadas abaixo. Compare sua estimativa com a resposta exata.
+
+a. $\displaystyle\int_0^1\exp\{e^x\}dx$.
+
+b. $\displaystyle\int_{-2}^2e^{x+x^2}dx$
+
+c. $\displaystyle\int_0^\infty\frac{x}{(1+x^2)^2}dx$
+
+d. $\displaystyle\int_0^1\int_0^1\exp\{(x+y)^2\}dydx$
+
+e. $\displaystyle\int_0^\infty\int_0^x\exp\{-(x+y)\}dydx$
+:::
+
+Temos que os valores exatos são, de acordo com o aplicativo [Wolfram Alpha](https://www.wolframalpha.com), os seguintes:
+
+a. $\theta=\text{Ei}(e)-\text{Ei}(1)\approx6.31656$
+
+b. $\theta=\frac{\sqrt\pi(\text{erfi(3/2)}+\text{erfi(5/2)})}{2\sqrt[4]{e}}\approx93.1628$
+
+c. $\theta=\frac{1}{2}=0.5$
+
+d. $\theta=\frac{1}{2}\left[ -2e(\text F(1)-1)+e^4(4\text F(2)-1)-\sqrt\pi\text{erfi}(1)-1\right]\approx4.89916$
+
+e. $\theta=\frac{1}{2}=0.5$
+
+### A)
+
+Temos que:
+
+$$
+\theta=\int_0^1\exp\{e^x\}dx= \text E[\exp\{e^x\}],\quad \text{onde }X\sim\text U(0,1)
+$$
+
+Então, pelo método da Integração Monte Carlo, calculamos a média dessa função exponencial aplicada numa amostra Uniforme(0,1) suficientemente grande:
+
+```{r}
+nSim <- 1E4
+#A)
+#funcao a ser integrada:
+g <- function(x) exp(exp(x))
+#método de integração monte carlo
+mean(g(runif(nSim)))
+
+```
+
+### B)
+
+O mesmo processo pode ser feito aqui, mas com uma mudança de variáveis:
+
+$$
+\begin{aligned}
+& y = \frac{x-(-2)}{2-(-2)}=\frac{x+2}{4} \quad \text {e }dy=\frac{1dx}{4}
+\end{aligned}
+$$
+
+Temos que quando $x\to -2, y\to 0$ e quando $x\to 2, y\to 1$. Substituindo na integral:
+
+$$
+\theta=\int_{-2}^2e^{x+x^2}dx = \int_0^14e^{4y-2+(4y-2)^2}dy
+$$
+
+Assim podemos fazer o mesmo que no item A:
+
+```{r}
+#B)
+g<- function(x) exp(x+x^2)
+#integracao monte carlo
+mean( g( (runif(nSim)*4-2) )*4 )
+```
+
+### C)
+
+Fazemos então a substituição:
+
+$$
+y = \frac{1}{x+1} \Rightarrow x = \frac{1}{y}-1\quad \text{e } dx= -\frac{1dy}{y^2}
+$$
+
+Temos que quando $x\to 0, y\to 1$ e quando $x\to \infty, y\to0$. Substituindo na integral:
+
+$$
+\theta=\int_0^\infty\frac{x}{(1+x^2)^2}dx=\int_0^1\frac{1}{y^2}\frac{\frac{1}{y}-1}{(1+(\frac{1}{y}-1)^2)^2}dy
+$$
+
+```{r}
+#C)
+g<- function(x) x/(1+x^2)^2
+#integracao monte carlo
+Y <- runif(nSim)
+mean(g( 1/Y - 1)/Y^2)
+
+```
+
+### D)
+
+Nessa integral nós temos que:
+
+$$
+\theta=\int_0^1\int_0^1\exp\{(x+y)^2\}dydx = \text E[g(X,Y)],\quad X \text{ e } Y \overset{iid}\sim \text U(0,1)
+$$
+
+Então:
+
+```{r}
+#D)
+g<- function(x,y) exp((x+y)^2)
+#integracao monte carlo
+mean( g(runif(nSim),runif(nSim)) )
+```
+
+### E)
+
+Aqui é necessário fazer uma substituição tanto para x quanto para y;
+
+$$
+\begin{cases}
+u= \frac{1}{x+1}\Rightarrow x= 1/u-1
+\\
+v= y/x =\frac{y}{1/u-1} \Rightarrow y = v(1/u-1)
+\end{cases}
+$$
+
+Coeficiente Jacobiano:
+
+$$
+J = \begin{vmatrix}
+-1/u^2 & 0
+\\
+-v/u^2 & 1/u -1
+\end{vmatrix}
+= -\frac{1/u -1}{u^2}
+$$
+
+Substituindo na integral:
+
+$$
+\theta = \int_0^\infty\int_0^x\exp\{-(x+y)\}dydx = \int_0^1\int_0^1\frac{1/u -1}{u^2}\exp\{-[1/u-1+(1/u-1)v]\}dvdu
+$$
+
+Assim podemos fazer a estimativa similarmente ao feito na letra D:
+
+```{r}
+#E)
+U <- runif(nSim)
+V <- runif(nSim)
+J <- (1/U-1)/U^2
+g<- function(x,y) exp(-x-y)
+#integracao monte carlo
+mean( g(1/U-1,(1/U-1)*V)*J)
+```
+
+As aproximações são decentes, mas algumas logo no segundo algarismo significativo é possível identificar um erro.
+
+# Questão 2
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Use simulação para aproximar o valor da $\text{Cov}(U,e^U)$, onde U é uma variável
+aleatória uniformemente distribuída entre 0 e 1.
+:::
+
+```{r}
+U <- runif(nSim)
+eU <- exp(U)
+cov(U,eU)
+```
+
+# Questão 3
+
+::: {.callout-note appearance="minimal"}
+**Enunciado:** Sejam as variáveis aleatórias $U_1, U_2, ...$, independentes e uniformemente
+distribuídas entre 0 e 1. Defina:
+
+$$
+min\left\{n:\sum^n_{i=1}U_i>1\right\}
+$$
+
+ou seja, $N$ é igual à quantidade de números aleatórios que devem ser somados
+para exceder 1.
+
+a. Gere 100 valores de $N$ e estime $\text E(N)$.
+
+b. Gere 1.000 valores de $N$ e estime $\text E(N)$.
+
+c. Gere 10.000 valores de $N$ e estime $\text E(N)$.
+
+d. Qual é o valor exato de $\text E(N)$?
+:::
+
+### A), B) e C)
+
+```{r}
+estimaN <- function(){
+  U <- runif(nSim)
+  somas <- cumsum(U)
+  return(which(somas > 1)[1])
+}
+#A) 100 valores
+mean(replicate(100,estimaN()))
+#B) 1.000 valores
+mean(replicate(1E3,estimaN()))
+#C) 10.000 valores
+mean(replicate(1E4,estimaN()))
+```
+
+### D)
+
+A soma $S_n=\sum^n_{i=1}U_i$ segue uma distribuição chamada $\text{Irwin-Hall}(n)$. Definamos também a distribuição de $N$:
+
+$$
+\text F_N(n)=\text P(N\leq n) = \begin{cases}
+\text P(S_n>1),\quad &n \in \{2,3,...\}
+\\
+0,& \text{c.c.}
+\end{cases}
+$$
+Onde $\text P(S_n>1)=1-F_{S_n}(1)=1-\frac{1}{n!}$. Além disso, como $N$ é discreta, temos que:
+
+$$
+\text F_N(n) = \sum^n_{k=2}f_N(k)=f_N(n) +  \sum^{n-1}_{k=2}f_N(k)=f_N(n) + \text F_N(n-1)
+$$
+
+$$
+\Rightarrow f_N(n)=\text F_N(n)-\text F_N(n-1) = 1 - \frac{1}{n!} - 1 + \frac{1}{(n-1)!}= \frac{1}{(n-1)!} - \frac{1}{n!}=\frac{n-1}{n!}
+$$
+
+Podemos então dizer que a esperança é:
+
+$$
+\begin{aligned}
+\text E(N)& = \sum^\infty_{k=2}kf_N(k)=\sum^\infty_{k=2}k\frac{k-1}{k!}=\sum^\infty_{k=2}\frac{k!}{k!(k-2)!}
+\\
+& =\sum^\infty_{k=2}\frac{1}{(k-2)!}=\sum^\infty_{k=0}\frac{1}{k!}
+\end{aligned}
+$$
+
+Ora, essa última soma é a série de Euler, uma das formas de expressar o número $e$. Ou seja:
+
+$$
+\text E(N)=e\approx2.718282
+$$

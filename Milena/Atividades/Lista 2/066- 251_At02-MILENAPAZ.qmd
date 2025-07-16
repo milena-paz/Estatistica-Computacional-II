@@ -1,6 +1,6 @@
 ---
 title: "Atividade 2 – Geração de Números Aleatórios: Variáveis Aleatórias Discretas & Misturas"
-sub: "EST066 - 2025.1"
+subtitle: "EST066 - 2025.1"
 author: "Milena Paz Freitas"
 format: html
 self-contained: true
