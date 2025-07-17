@@ -86,3 +86,101 @@ rbind(Media=apply(estima,2,mean),
       DesvioPadrao=apply(estima,2,sd),
       apply(estima,2,quantile,probs=c(0.025,0.975))
 )
+
+
+#### REGRESSAO LINEAR MÚLTIPLA ####
+# variáveis explicativas: X e Ia
+# Y = B0 + B1*X + B2*Ia + e
+# e ~ N(0,sigma^2)
+###
+# Ia: indicadora do grupo A
+#se grupo=A:
+# Y = B0 + B1*X + B2*1 + e
+#   = B0 + B2 + B1*X + e
+#se grupo != A
+# Y = B0 + B1*X + e
+###
+#teste de que se essa regressao e significativa ou nao
+## HIPOTESES:
+##Ho : B1=...=Bp=0
+##Ha : pelo menos um beta é diferente de 0
+
+#### EXEMPLO ----
+#Y = 5 - 2*X + 2*Ia
+n<- 50
+# X ~ N(0,1)
+X <- rnorm(n)
+#1/2 GRUPO A
+#1/2 NAO GRUPO A
+grupo <- factor(rep(c("A","B"),each=n/2),levels=c("B","A"))
+# e ~ N(0,4)
+e <- rnorm(n,sd=2)
+Y <- 5 - 2*X + 2*(as.numeric(grupo)-1) + e
+#modelo linear
+ml <- lm(Y~X+grupo)
+cbind(ml$coefficients,summary(ml)$sigma)
+
+plot(X,Y,col=as.numeric(grupo),pch=19)
+
+ggfortify::autoplot(ml)
+
+#RESPONDENDO AO TESTE:
+#Ho: a estatistica f ~ F(2,47)
+# Mas simulamos Ha...
+#
+#estatistica F:
+est <-summary(ml)$f
+#p-valor
+1-pf(est[1],df1=est[2],df2=est[3])
+with(ml,{
+  abline(coefficients[1],coefficients[2],lty=2)
+  abline(coefficients[1]+coefficients[3],coefficients[2],col=2,lty=2)
+  }
+)
+
+estimaParametros <- function(){
+  e <- rnorm(n,sd=2)
+  Y <- 5 - 2*X + 2*(as.numeric(grupo)-1) + e
+  pares <- data.frame(Y,X)
+  ajuste <- lm(Y~X+grupo,data=pares)
+  estat <- summary(ajuste)$f
+  pvalor <- 1-pf(estat[1],estat[2],estat[3])
+  return(c(ajuste$coefficients,
+           sigma=summary(ajuste)$sigma,
+           pvalor))
+}
+
+param <- t(replicate(1000,estimaParametros()))
+nomes <- c(expression(beta[0]==5),
+           expression(beta[1]==-2),
+           expression(beta[2]==2),
+           expression(sigma==2))
+
+sum(param[,5] > 0.05)
+
+for(i in 1:4){
+  hist(param[,i],freq=F,col="salmon",main= nomes[i])
+  lines(density(param[,i]),lty=2,lwd=2)
+}
+#media, desvio padrao e intervalo de confianca das estimativas
+rbind(Media=apply(param,2,mean),
+      DesvioPadrao=apply(param,2,sd),
+      apply(param,2,quantile,probs=c(0.025,0.975))
+)
+
+estimaParametros <- function(){
+  e <- rnorm(n,sd=2)
+  Y <- 5 + e
+  pares <- data.frame(Y,X)
+  ajuste <- lm(Y~X+grupo,data=pares)
+  estat <- summary(ajuste)$f
+  pvalor <- 1-pf(estat[1],estat[2],estat[3])
+  return(c(ajuste$coefficients,
+           sigma=summary(ajuste)$sigma,
+           pvalor))
+}
+
+param <- t(replicate(1000,estimaParametros()))
+sum(param[,5] > 0.05)
+
+hist(param[,5],freq=F,col="salmon",main="p-valor")
