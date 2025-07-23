@@ -60,3 +60,7 @@ newton_raphson <- function(f, f_prime, x0, tol = 1e-9, max_iter = 100) {
 
 raiz <- newton_raphson(f, f_prime, x0 = 3)
 cat("Raiz encontrada:", raiz, "\n")
+
+new_f <- function(x) x^3 + 4
+
+raiz <- newton_raphson(new_f, f_prime, x0 = 3
