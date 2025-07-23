@@ -1,0 +1,142 @@
+---
+title: "Trabalho Computacional 2"
+subtitle: "EST077 - 2025.1"
+author: "Milena Paz Freitas"
+lang: pt-BR
+format: html
+table-of-contents: true
+editor: source
+self-contained: true
+code-fold: show
+code-summary: "<b>Mostrar/esconder código</b>"
+---
+
+# Situação 1:
+
+Suponha que se tenha uma amostra aleatória $Y_1, . . . , Y_n$ de $Y\sim\text{Gama}(\alpha,\beta)$, com $\alpha$ e $\beta$ desconhecidos. O objetivo é encontrar os estimadores de máxima verossimilhança de $\alpha$ e $\beta$.
+
+Gera-se parâmetros alfa e beta e respectiva amostra aleatoriamente para realizar simulação:
+
+```{r}
+#| code-fold: FALSE
+n<- 100
+alfa <- runif(1,max=10)
+beta <- runif(1,max=10)
+
+Y <- rgamma(n, shape=alfa, scale=beta)
+```
+
+OBS: Nesse caso, os parâmetros estarão limitados entre 0 e 10, mas essa informação não será relevante na realização do exercício.
+
+## Método A)
+
+Esta abordagem envolve a maximização numérica da função log-verossimilhança $l(\alpha,\beta)$ quanto aos 2 argumentos, fazendo uso da função `stats::optim` no R.
+
+Primeiro, devemos encontrar e definir $l(\alpha,\beta)$ como função no R:
+
+$$
+L(\alpha,\beta)=\prod^n_{i=1}f_Y(y_i)=\prod^n_{i=1}\frac{1}{\Gamma(\alpha)\beta^\alpha}y_i^{a-1}e^{-y_i/\beta}=
+\frac{1}{\Gamma(\alpha)^n\beta^{n\alpha}}\left[\prod^n_{i=1}y_i\right]^{\alpha-1}e^{-\sum_iy_i/\beta}
+$$
+
+$$
+\Rightarrow l(\alpha,\beta)=(\alpha-1)\ln\left[\prod^n_{i=1}y_i\right]-\frac{\sum^n_{i=1}y_i}{\beta}
+-n\{\ln\Gamma(\alpha) + \alpha\ln(\beta)\}
+$$
+
+Implementando no R e maximizando:
+
+```{r,warning=FALSE}
+verossim <- function(param,y=Y){
+  a <- param[1]
+  b <- param[2]
+  L <- log(prod(y))*(a-1) - sum(y)/b - n*log(gamma(a)*b^a)
+  return(-L) #valor negativo para que a funcao seja maximizada e nao minimizada
+}
+#maximizacao
+EMV <- optim(par=c(5,5),fn=verossim)$par
+```
+
+## Método B)
+
+Para realizar este método, divide-se a tarefa em duas etapas: Primeiro, deve-se encontrar o EMV de $\beta$, $\hat\beta$, assumindo que $\alpha$ é conhecido e substituir $\hat\beta$ em $l(\alpha,\beta)$. Assim, utilizando de métodos de maximização numéricos, encontra-se um $\hat\alpha$. Em seguida, basta obter $\hat\beta$ com base nesse resultado.
+
+$$
+\frac{d l(\beta|\alpha)}{d\beta}= -\frac{n\alpha}{\beta}+\frac{\sum_{i=1}^n y_i}{\beta^2}
+$$
+
+Solucionando para $\frac{d l(\beta|\alpha)}{d\beta}|^{\beta=\hat\beta}=0$, temos:
+
+$$
+\hat\beta = \frac{\sum_{i=1}^n y_i}{n\alpha}
+$$
+
+Substituindo em $l(\alpha,\beta)$:
+
+$$
+\begin{aligned}
+l(\alpha,\hat\beta)&= 
+(\alpha-1)\ln\left[\prod^n_{i=1}y_i\right]-\frac{\sum^n_{i=1}y_i}{\frac{\sum_{i=1}^n y_i}{n\alpha}}
+-n\{\ln\Gamma(\alpha) + \alpha\ln\left(\frac{\sum_{i=1}^n y_i}{n\alpha}\right)\}
+\\
+&=(\alpha-1)\ln\left[\prod^n_{i=1}y_i\right]-n\alpha
+-n\{\ln\Gamma(\alpha) + \alpha\ln\left(\frac{\bar y}{\alpha}\right)\}
+\end{aligned}
+$$
+
+### i.  Maximização por gride de valores de $\alpha$:
+
+```{r}
+verossim.2 <- function(a,y=Y){
+  log(prod(y))*(a-1) - n*a - n*log(gamma(a)*(mean(y)/a)^a)
+}
+a <- seq(0.01,100,1)
+L <- verossim.2(a)
+par(mfrow=c(2,3),mar=c(4.1,4.1,2,1))
+plot(a,L,type="l")
+
+# 5 repeticoes
+for(i in 1:5){
+  a <- seq(0.01,a[L==max(L)]+3/i,10^(-i))
+  L <- verossim.2(a)
+  plot(a, L,type="l", main=paste0(i,"a repetição"),
+       xlab=expression(alpha))
+  abline(v=a[L==max(L)],col="red",lty=2)
+  mtext(bquote(hat(alpha) ==.(a[L==max(L)])),side=1,line=-1,
+        adj=1,cex=.85)
+}
+
+```
+
+Substituindo no estimador $\hat\beta$ obtido anteriormente:
+
+```{r}
+a <- a[L==max(L)]
+b <- mean(Y)/a
+```
+
+### ii. Maximização por `stats::optim`:
+
+```{r,warning=F}
+a2 <- optim(5,
+           fn=function(p) return(-verossim.2(p)))$par
+b2 <- mean(Y)/a
+```
+
+## Comparando os resultados
+
+Abaixo temos uma tabela comparando os valores obtidos pelo método A, B em comparação com os parâmetros gerados:
+
+```{r}
+#| code-fold: true
+tabela <- rbind(Parametros=c(alfa=alfa,beta=beta),
+                Estimadores.A=EMV,
+                Estimadores.B1=c(a,b),
+                Estimadores.B2=c(a2,b2))
+rownames(tabela) <- c("Parâmetros","Método A","Método B.1","Método B.2")
+knitr::kable(tabela,col.names = c("Alpha","Beta"))
+```
+
+Os resultados são bem semelhantes para ambos os métodos.
+
+# Situação 2:
