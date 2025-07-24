@@ -199,4 +199,102 @@ newtonR <- function(expr, x0, max=20, e=1E-5){
   return(x0)
 }
 
-newtonR(expression(x^3-6*x^2+11*x-6), x0=-1,e=1E-9)
+newtonR(f, x0=5,e=1E-9)
+
+######################################
+
+#METODO NEWTON-RHAPSON
+#importante:
+# -escolha de x0
+# - f'(x) e f''(x) não nulas em [a,b] e preservem o sinal
+# - convergencia
+
+#Temos que essas coisas nao sao problemas para uma função acumulada de uma
+#VA contínua! Podemos então tratar a função quantílica como a solução de uma equaçao:
+#Q(p)=F^-1(x); F(x)=p -> F(x) - p = 0 #(!!)
+#Assim, podemos usar newton-rhapson
+
+#EXEMPLO:
+#quantílica da normal padrão:
+# P = 0.975
+qnorm(0.975)
+
+f <- function(x){
+  pnorm(x) - 0.975
+}
+
+proximo <- function(atual){
+  if(dnorm(atual)==0)
+    stop(cat("ERRO: ponto crítico atingido"))
+  return(atual-f(atual)/dnorm(atual))
+}
+
+erro <- .Machine$double.eps^0.25
+x <- buscaRaiz(1.2,max=20,e=erro)
+abs(x-qnorm(0.975))
+
+buscaRaiz.2 <- function(fun,deriv,x0,max,e){
+  diff <- e+1
+  cont <- 0
+  while(diff > e & max-cont>0){
+    derivada <- deriv(x0)
+    if(derivada==0){
+      cat("Ponto crítico encontrado\n"); break 
+    }
+    prox <- x0 - fun(x0)/derivada
+    diff <- abs(x0 - prox)
+    x0 <- prox; cont <- cont + 1
+  }
+  cat(cont," iterações\n")
+  return(x0)
+}
+
+x2 <- buscaRaiz.2(f, dnorm, as.complex,max=100,erro)
+abs(x2-qnorm(0.975))
+#x0 problemático:
+x2 <- buscaRaiz.2(f, dnorm, -1E10,max=1E3,erro)
+abs(x2-qnorm(0.975))
+#x0 gerado aleatoriamente
+x2 <- buscaRaiz.2(f, dnorm, x0=rnorm(1),max=100,erro)
+abs(x2-qnorm(0.975))
+
+####################################################
+####  MÉTODO DA BISSECÇÃO ####
+#Seja f(x) uma função contínua em [a,b] e com sinais opostos nos extremos (!!)
+
+# - Verifica-se o sinal de f(x) em a e no ponto médio pm = (a+b)/2
+#   * Caso seja sinal oposto de f(a): b <- pm
+#   * Caso seja o mesmo que de f(a): a <- pm
+
+f <- function(x)
+  x^2 + 3*x -2
+(xises <- seq(-5,5,1))
+f(xises)
+
+bisseccao <- function(f, a, b, e=erro){
+  if(f(a)*f(b)>0)
+    stop("Múltiplas ou nenhuma raiz no intervalo")
+  diff <- e+1
+  cont <- 0
+  while(diff > e){
+    pm <- (a + b)/2
+    sinaldif <- f(a) * f(pm) < 0
+    a <- a*0^as.numeric(!sinaldif) + pm*0^as.numeric(sinaldif)
+    b <- b*0^as.numeric(sinaldif) + pm*0^as.numeric(!sinaldif)
+    diff <- abs(a - b)
+    cont <- cont+1
+  }
+  cat(cont," iterações\n")
+  return((a+b)/2)
+}
+
+bisseccao(f, -4,-3)
+bisseccao(f, 0,1)
+
+#FUNCAO UNIROOT
+uniroot(f, lower=-1,upper=1)$root
+#FUNCOA POLYROOT
+raizes<- polyroot(c(-1,0,0,1)) # x^3-1 = 0
+raizes**3
+v2 <- polyroot(c(1,0,0,1)) # x^3 + 1 =0
+v2**3
