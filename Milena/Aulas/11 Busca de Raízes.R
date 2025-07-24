@@ -168,3 +168,35 @@ eval(f)
 curve(x^x-49,from=3,to=4,col="blue")
 abline(h=0,lty=2,lwd=2)
 points(t,eval(f),col="red",pch=19)
+
+
+#####################################
+
+avalia <- function(expr, val){
+  x <- val
+  return(eval(expr))
+}
+
+newtonR <- function(expr, x0, max=20, e=1E-5){
+  #-------------------------------------------#
+  #expr: expression() com variavel de nome "x"
+  #x0: valor inicial
+  #max: numero maximo de iterações
+  #e: erro
+  #-------------------------------------------#
+  df <- D(expr, name="x")
+  diff <- e+1
+  while(diff > e & max>=1){
+    derivada <- avalia(df,x0)
+    if(derivada==0){
+     cat("Ponto crítico encontrado"); break 
+    }
+    prox <- x0 - avalia(expr,x0)/derivada
+    diff <- abs(x0 - prox)
+    x0 <- prox
+    max <- max-1
+  }
+  return(x0)
+}
+
+newtonR(expression(x^3-6*x^2+11*x-6), x0=-1,e=1E-9)
