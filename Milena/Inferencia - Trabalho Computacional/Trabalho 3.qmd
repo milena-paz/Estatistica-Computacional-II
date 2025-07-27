@@ -11,7 +11,7 @@ code-fold: show
 code-summary: "<b>Mostrar/esconder código</b>"
 ---
 
-# Situação 1:
+# Seção 1:
 
 Suponha que se tenha uma amostra aleatória $Y_1, . . . , Y_n$ de $Y\sim\text{Gama}(\alpha,\beta)$, com $\alpha$ e $\beta$ desconhecidos. O objetivo é encontrar os estimadores de máxima verossimilhança de $\alpha$ e $\beta$.
 
@@ -28,7 +28,7 @@ Y <- rgamma(n, shape=alfa, scale=beta)
 
 OBS: Nesse caso, os parâmetros estarão limitados entre 0 e 10, mas essa informação não será relevante na realização do exercício.
 
-## Método A)
+## 1.1 Método A)
 
 Esta abordagem envolve a maximização numérica da função log-verossimilhança $l(\alpha,\beta)$ quanto aos 2 argumentos, fazendo uso da função `stats::optim` no R.
 
@@ -57,7 +57,7 @@ verossim <- function(param,y=Y){
 EMV <- optim(par=c(5,5),fn=verossim)$par
 ```
 
-## Método B)
+## 1.2 Método B)
 
 Para realizar este método, divide-se a tarefa em duas etapas: Primeiro, deve-se encontrar o EMV de $\beta$, $\hat\beta$, assumindo que $\alpha$ é conhecido e substituir $\hat\beta$ em $l(\alpha,\beta)$. Assim, utilizando de métodos de maximização numéricos, encontra-se um $\hat\alpha$. Em seguida, basta obter $\hat\beta$ com base nesse resultado.
 
@@ -129,14 +129,147 @@ Abaixo temos uma tabela comparando os valores obtidos pelo método A, B em compa
 
 ```{r}
 #| code-fold: true
-tabela <- rbind(Parametros=c(alfa=alfa,beta=beta),
-                Estimadores.A=EMV,
-                Estimadores.B1=c(a,b),
-                Estimadores.B2=c(a2,b2))
+tabela <- rbind(c(alfa=alfa,beta=beta),
+                EMV,
+                c(a,b),
+                c(a2,b2))
 rownames(tabela) <- c("Parâmetros","Método A","Método B.1","Método B.2")
-knitr::kable(tabela,col.names = c("Alpha","Beta"))
+knitr::kable(tabela,col.names = c("$\\alpha$","$\\beta$"),escape=F)
 ```
 
 Os resultados são bem semelhantes para ambos os métodos.
 
-# Situação 2:
+# Seção 2:
+
+## 2.1 Densidade Cauchy
+
+O objetivo é encontrar o EMV de $\theta$ de dada amostra de $X\sim\text{Cauchy}(\theta,1)$. Para estimar a locação da distribuição, pode-se usar o método de Newton-Rhapson para encontrar a raiz de $S(\hat\theta)=\frac{d l(\theta)}{d\theta}|^{\theta=\hat\theta}=0$ da seguinte forma:
+
+1. Definir um $\hat\theta^{(0)}$ e um erro $\epsilon$.
+
+2. Calcular $\hat\theta^{(n)}=\hat\theta^{(n-1)}+\frac{S(\hat\theta^{(n-1)})}{H(\hat\theta^{(n-1)})}$, 
+onde $H(\theta)=-\frac{d^2 l(\theta)}{d\theta^2}$.
+
+3. Se $|\hat\theta^{(n)}-\hat\theta^{(n-1)}|<\epsilon$ pare e tome $\hat\theta=\hat\theta^{(n)}$
+
+4. Caso contrário, voltar ao passo 2.
+
+Então, definamos $S(\theta)$ e $H(\theta)$ para uma a.a. de $X$:
+
+$$
+L(\theta)=\prod^n_{i=1}f_X(x_i)=\frac{1}{\pi^n}\prod^n_{i=1}\frac{1}{1+(x_i-\theta)^2}
+$$
+
+Como independe de de $\theta$, podemos desconsiderar o fator $\frac{1}{\pi^n}$ para a função log-verossimilhança:
+
+$$
+\begin{aligned}
+& l(\theta)=-\sum^n_{i=1}\ln(1+(x_i-\theta)^2)
+\\
+& \Rightarrow S(\theta)=\sum^n_{i=1}\frac{2(x_i-\theta)}{1+(x_i-\theta)^2}
+\\
+& \Rightarrow H(\theta)=\sum^n_{i=1}\frac{2[1-(x_i-\theta)^2]}{[1+(x_i-\theta)^2]^2}
+\end{aligned}
+$$
+
+Por fim, utiliza-se o algoritmo Newton-Raphson:
+
+```{r}
+set.seed(109) #semente para manter consistencia nos resultados
+#por ser cauchy as vezes a aproximacao explode, ja que n defini um numero máximo de iterações
+x <- rcauchy(100,location=10)
+
+S <- function(t, X=x)
+  2*sum((X-t)/(1+(X-t)^2))
+
+H <- function(t,X=x)
+  2*sum((1-(X-t)^2)/(1+(X-t)^2))^2
+
+nH <- function(fun,deriv,x0,e){
+  diff <- e+1
+  iter <- numeric()
+  iter[1] <- x0
+  while(diff > e){
+    derivada <- deriv(x0)
+    if(derivada==0){
+      cat("Ponto crítico encontrado\n"); break
+    }
+    prox <- x0 + fun(x0)/derivada
+    diff <- abs(x0 - prox)
+    x0 <- prox
+    iter <- append(iter, x0)
+  }
+  return(list(res=x0,iter=iter))
+}
+tht0 <- 10.04490
+obj <- nH(S,H,x0=tht0,e=1E-2)
+
+L <- function(t,X=x)
+  -log(prod(1+(x-t)^2))-n*log(pi)
+
+tabela <- cbind(k=seq_along(obj$iter)-1,teta=obj$iter,L=sapply(obj$iter,L))
+
+colunas <- c("k","$\\hat\\theta^{(k)}$","$\\ln L(\\hat\\theta^{(k)})$")
+
+knitr::kable(tabela, col.names = colunas,row.names = NA)
+```
+
+## 2.2 Bolfarine e Sandoval, 2010
+
+Seja $X$ uma v.a. com a seguinte fdp:
+
+$$
+f(x|\theta)=\frac{1}{2}(1+\theta x), \quad -1 \leq x \leq 1, \quad -1 \leq \theta \leq 1
+$$
+
+Dada uma a.a. $\pmb{X}=x_1,...,x_n$ de $X$, o objetivo é obter um estimador sobre $\theta$ usando o método Newton-Rhapson.
+
+Implementando o conjunto de dados no livro de Bolfarine e Sandoval, de tamanho $n=20$ e com $\theta=0.4$
+
+```{r}
+x <- c(0.3374,0.9285,0.6802,-0.2139,0.1052,
+        -0.9793,-0.2623,-0.1964,0.5234,-0.0349,
+        -0.6082,0.7509,0.3424,-0.7010,-0.2605,
+        0.4077,-0.7435,0.9862,0.9704,0.5313)
+```
+
+Achando a função de log-verossimilhança para $\theta$:
+
+$$
+\begin{aligned}
+&L(\theta)=\prod^n_{i=1}\left(\frac{1+\theta x_i}{2}\right)
+\\
+& \Rightarrow l(\theta)=\sum^n_{i=1}\ln(1/2+\theta x_i/2)=-n\ln2+ \sum^n_{i=1} \ln(1+\theta x_i)
+\end{aligned}
+$$
+
+Ignorando a parcela $-n\ln2$, pois independe de $\theta$, usaremos:
+
+$$
+\begin{aligned}
+&l(\theta)=\sum^n_{i=1} \ln(1+\theta x_i)
+\\
+& \Rightarrow S(\theta)= \sum^n_{i=1}\frac{x_i}{1+\theta x_i}
+\\
+& \Rightarrow H(\theta)= - \sum^n_{i=1}\frac{-x_i^2}{(1+\theta x_i)^2}=\sum^n_{i=1}\frac{x_i^2}{(1+\theta x_i)^2}
+\end{aligned}
+$$
+
+Com essas funções, usamos o algoritmo Newton-Raphson para obter $\hat\theta$, como feito anteriormente:
+
+```{r}
+S <- function(t, X=x)
+  sum(x/(1+t*x))
+
+H <- function(t,X=x)
+  sum(x^2/(1+t*x)^2)
+
+tht0 <- mean(x)
+obj <- nH(S,H,x0=tht0,e=1E-10)
+
+L <- function(t,X=x)
+  log(prod((0.5+x*t/2)^2))
+
+tabela <- cbind(k=seq_along(obj$iter)-1,teta=obj$iter,L=sapply(obj$iter,L))
+knitr::kable(tabela, col.names = colunas,row.names = NA)
+```
