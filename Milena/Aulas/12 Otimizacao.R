@@ -22,7 +22,7 @@ f <- function(x) -exp(-(x-2)^2)
 optim(1,fn=f)
 #metodo brent
 optim(1,fn=f, method="Brent",lower=0,upper=4)
-#metodo CG (usa variada)
+#metodo CG (usa derivada)
 df <- function(x) -2*(x-2)*f(x)
 optim(par=1,fn=f,gr=df,method="CG")
 # O método Nelder-Mead é mais sensível ao valor inicial, mas não usa derivada.
