@@ -1,0 +1,205 @@
+---
+title: "Métodos de Regressão"
+format: html
+lang: "pt-BR"
+editor: source
+table-of-contents: true
+author: "Milena Paz Freitas"
+subtitle: "EST066 - 2025.1"
+bibliography: "ref.bib"
+self-contained: true
+code-fold: show
+code-summary: "<b>Mostrar/esconder código</b>"
+---
+
+# Dados
+
+## 1. Regressão simples
+
+A Tabela 3.1 "Acid Content Data" do livro de @fairley1994 será usada para fazer a implementação dos métodos de regressão
+
+```{r}
+#| code-fold: true
+ID <- 1:20
+Caro<- c(76,70,55,71,55,48,50,66,41,43,82,68,88,58,64,88,89,88,84,88)
+Barato<- c(123,109,62,104,57,37,44,100,16,28,138,105,159,75,88,164,169,167,149,167)
+
+dados.1 <- data.frame(ID,Caro,Barato)
+rm(list=c("ID","Caro","Barato"))
+knitr::kable(dados.1)
+```
+
+<br>
+
+#### Modelo Linear
+
+$$
+\hat Y = \beta_0 + \beta_1X\quad + \epsilon,
+$$
+
+onde:
+
+- $\hat Y=$ medida de conteúdo de ácido "caro" da amostra química;
+
+- $X=$ medida de número de ácido "barato" da amostra química.
+
+- $\epsilon$ é o erro ou resíduo;
+
+- $\beta_i$ são os coeficientes de regressão.
+
+## 2. Regressão múltipla
+
+A Tabela 1.1 "Turnip Green Data" [@fairley1994] será usada para fazer a implementação dos métodos de regressão múltipla estudados:
+
+```{r}
+#| code-fold: true
+ID <- 1:27
+B2 <-c(110.4,102.8,101.0,108.4,100.7,100.3,102.0,93.7,98.9,96.6,
+99.4,96.2,99.0,88.4,75.3,92.0,82.4,77.1,74.0,65.7,56.8,62.1,61.0,53.2,59.4,58.7,58.0)
+Sol <- c(176,155,273,273,256,280,280,184,216,
+198,59,80,80,105,180,180,177,230,203,191,191,191,76,213,213,151,205)
+Humidade <- c(7.0,7.0,7.0,7.0,7.0,7.0,7.0,7.0,7.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,
+2.0,2.0,47.4,47.4,47.4,47.4,47.4,47.4,47.4,47.4,47.4)
+Temp.Ar <- c(78,89,89,72,84,87,74,87,88,76,
+65,67,62,70,73,65,76,82,76,83,82,69,74,76,69,75,76)
+
+dados.2 <- data.frame(ID,B2,Sol,Humidade,Temp.Ar)
+rm(list=c("ID","B2","Sol","Humidade","Temp.Ar"))
+knitr::kable(dados.2)
+```
+
+<br>
+
+#### Modelos Lineares
+
+$$
+\begin{aligned}
+&\text{(i)}\quad\hat Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \beta_3X_3 + \epsilon
+\\
+&\text{(ii)}\quad\hat Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \beta_3X_3 + \beta_4X_4 + \epsilon\quad,
+\end{aligned}
+$$
+
+onde:
+
+- $\hat Y=$ concentração de vitamina B2 da planta;
+
+- $X_1=$ medida de luz solar para a planta;
+
+- $X_2=$ humidade do solo da planta;
+
+- $X_3=$ temperatura do ar para a planta;
+
+- $X_4=X^2_2$.
+
+- $\epsilon$ é o erro ou resíduo;
+
+- $\beta_i$ são os coeficientes de regressão.
+
+# Mínimos Quadrados
+
+## Regressão Simples
+
+A regressão por mínimos quadrados envolve a minimização de $\sum^n_{i=0}(y_i - \hat{y_i})^2=$ $\sum^n_{i=0}(y_i - \hat\beta_0 + \hat\beta_1x_1 + \hat\beta_2x_2 + \hat\beta_3x_3)^2$ por valores de $\beta_i$, $i=0,1,2,3$.
+
+```{r}
+minQuad <- function(b){
+  return(sum((dados.1$Caro-b[1]-dados.1$Barato*b[2])^2))
+}
+
+(b <-optim(par=c(0,0),minQuad)$par)
+coef <- list(simples.minQuad=b)
+```
+
+Visualizando o ajuste:
+
+```{r}
+#| fig-align: "center"
+par(mar=c(4.1,4.1,1,1))
+plot(Caro ~ Barato,data=dados.1)
+abline(a=b[1],b=b[2],lty=2,lwd=2,col="red")
+```
+
+Avaliando o modelo:
+
+```{r}
+par(mfrow=c(1,2),mar=c(4.1,4.1,1,1))
+resid <- dados.1$Caro - b[1] - b[2]*dados.1$Barato
+plot(b[1] + b[2]*dados.1$Barato,resid,ylab="Resíduos",xlab="Estimativa de Caro")
+abline(h=0,lty=2,col="grey30")
+plot(b[1] + b[2]*dados.1$Barato,dados.1$Caro,
+     xlab="Estimativa de Caro",ylab="Valor real de Caro")
+abline(a=0,b=1,lty=2,col="grey30")
+mtext(paste("EQM =",round(mean((dados.1$Caro - b[1] - b[2]*dados.1$Barato)^2),3)),
+      side=1,padj=-2,col="blue4")
+```
+
+Temos que o ajuste é excelente, com baixo erro quadrático médio.
+
+## Regressão Múltipla
+
+### Modelo i)
+
+A regressão por mínimos quadrados envolve a minimização de $\sum^n_{i=0}(y_i - \hat{y_i})^2=$ $\sum^n_{i=0}(y_i - \hat\beta_0 + \hat\beta_1x_1 + \hat\beta_2x_2 + \hat\beta_3x_3)^2$ por valores de $\beta_i$, $i=0,1,2,3$.
+
+```{r}
+matriz <- cbind(rep(1,27),as.matrix(dados.2[,-(1:2)]))
+minQuad <- function(b){
+  return(sum((dados.2$B2-matriz%*%b)^2))
+}
+(b <-optim(par=c(min(dados.2$B2),0,0,0),minQuad)$par)
+coef$multi.minQuad1 <- b
+```
+
+Analisando o modelo:
+
+```{r}
+#| fig-align: "center"
+resid <- dados.2$B2-matriz%*%b
+#grafico 1
+par(mfrow=c(1,2),mar=c(4.1,4.1,1,1))
+plot(matriz%*%b,resid,xlab="Estimativa de B2",ylab="Resíduos",
+     col=c("blue","red")[as.numeric(dados.2$Humidade>7)+1])
+abline(h=0,lty=2,col="grey30")
+#grafico 2
+plot(matriz%*%b,dados.2$B2,xlab="Estimativa de B2",ylab="Valor real de B2",
+     col=c("blue","red")[as.numeric(dados.2$Humidade>7)+1])
+abline(a=0,b=1,lty=2,col="grey30")
+legend("topleft",legend=c("Humidade > 7", "Humidade <=7"),col=c("blue","red"),pch=1)
+mtext(paste("EQM =",round(mean((dados.2$B2-matriz%*%b)^2),3)),
+      side=1,padj=-2,col="blue4")
+```
+
+É possível observar que o modelo não é muito bom para esses dados.
+
+### Modelo ii)
+
+```{r}
+matriz <- cbind(rep(1,27),as.matrix(dados.2[,-(1:2)]), dados.2$Humidade^2)
+(b <-optim(par=c(100,0,0,0,0),minQuad)$par)
+coef$multi.minQuad2 <- b
+```
+
+Analisando o modelo:
+
+```{r}
+#| fig-align: "center"
+resid <- dados.2$B2-matriz%*%b
+par(mfrow=c(1,2),mar=c(4.1,4.1,1,1))
+plot(matriz%*%b,resid,xlab="Estimativa de B2",ylab="Resíduos")
+abline(h=0,lty=2,col="grey30")
+plot(matriz%*%b,dados.2$B2,xlab="Estimativa de B2",ylab="Valor real de B2")
+abline(a=0,b=1,lty=2,col="grey30")
+mtext(paste("EQM =",round(mean((dados.2$B2-matriz%*%b)^2),3)),
+      side=1,padj=-2,col="blue4")
+```
+
+Observamos melhor ajuste com esse modelo de segundo grau no plot de Estimativa vs Valor Real, e menor erro quadrático médio (EQM). Os resíduos aparentam estar distribuidos normalmente:
+
+```{r}
+ks.test(resid,function(q) pnorm(q, sd=sd(resid)))
+```
+
+# Mínimos Desvios Absolutos (LAD)
+
+P

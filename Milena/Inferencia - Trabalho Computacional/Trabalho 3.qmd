@@ -1,5 +1,5 @@
 ---
-title: "Trabalho Computacional 2"
+title: "Trabalho Computacional 3"
 subtitle: "EST077 - 2025.1"
 author: "Milena Paz Freitas"
 lang: pt-BR

@@ -1,0 +1,72 @@
+---
+title: "Trabalho Computacional 4"
+subtitle: "EST077 - 2025.1"
+author: "Milena Paz Freitas"
+lang: pt-BR
+format: html
+table-of-contents: true
+editor: source
+self-contained: true
+code-fold: show
+code-summary: "<b>Mostrar/esconder código</b>"
+---
+
+# Relação entre horas de estudo e desempenho em uma avaliação
+
+Uma escola está interessada em entender a relação entre o número de horas de estudo e
+o desempenho dos alunos em uma prova padronizada. Para isso, coletou dados de 15
+estudantes, registrando o total de horas que cada um estudou na semana anterior ao
+exame e a respectiva pontuação obtida.
+
+Importando os dados:
+
+```{r}
+df <- data.frame(
+hours = c(1, 2, 4, 5, 5, 6, 6, 7, 8, 10, 11, 11, 12, 12, 14),
+score = c(64, 66, 76, 73, 74, 81, 83, 82, 80, 88, 84, 82, 91, 93, 89)
+)
+```
+
+### Representação gráfica e ajuste de um modelo de regressão
+
+```{r}
+plot(score~hours,data=df)
+#ajuste por mínimos quadrados
+ml <- lm(score~hours,data=df)
+#intercepto e coef angular:
+ab <- ml$coefficients
+names(ab) <- NULL
+#adiciona ajuste no plot
+abline(ml,lty=2,col="red",lwd=2)
+```
+
+Deseja-se usar o modelo para prever o desempenho de um aluno que estudou 19 horas. Assim:
+
+```{r}
+ab[2]*19 + ab[1]
+```
+
+é a pontuação esperada de um aluno que estudou por 19h. Se a prova valer 100 pontos, por exemplo, é esperado que esse aluno obtenha pontuação alta ou máxima.
+
+### Avaliação do modelo
+
+A qualidade do ajuste pode ser avaliada por meio do coeficiente de determinação $R^2$, que quanto mais próximo de 1 melhor a capacidade de predição do ajuste (menor erro). Temos que:
+
+```{r}
+#R2
+summary(ml)$r.squared
+```
+
+é o valor de $R^2$, indicando boa representatividade dos dados pelo ajuste. Além disso, é interessante avaliar os resíduos do modelo linear:
+
+```{r}
+#visualmente:
+plot(ab[2]*df$hours + ab[1],ml$residuals,xlab="Valor Previsto",ylab="Resíduos")
+abline(h=0,lty=2,col="grey40")
+```
+
+Podemos observar que eles estão dispersos de forma aleatória, mais um indicador de que este é um bom ajuste.
+
+## Conclusão
+
+A natureza da relação entre o tempo de estudo e pontuação no teste é de correlação e não causação. Ou seja, por conta do modelo estar bem ajustado, podemos concluir que maiores tempos de estudo estão correlacionados com bom desempenho, mas não que este seja consequência do tempo de estudo.
