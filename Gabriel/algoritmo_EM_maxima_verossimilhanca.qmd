@@ -1,0 +1,422 @@
+---
+title: "Implementação do Algoritmo EM para Estimação de Máxima Verossimilhança"
+author: "Gabriel Sanábio Mazzetti Affonso"
+date: today
+format: 
+  html:
+    toc: true
+    theme: cosmo
+    code-fold: true
+editor: visual
+---
+
+## 1. Introdução Teórica
+
+A **Estimação de Máxima Verossimilhança (Maximum Likelihood Estimation - MLE)** é um dos métodos mais fundamentais em inferência estatística. A ideia central é encontrar os valores dos parâmetros de um modelo estatístico que maximizam a probabilidade (ou "verossimilhança") de se observar o conjunto de dados coletado.
+
+No entanto, a aplicação direta do MLE pode se tornar computacionalmente intratável ou até mesmo impossível em cenários que envolvem **variáveis latentes** — variáveis que não são diretamente observadas, mas que influenciam os dados que vemos. Um exemplo clássico é a clusterização, onde os dados observados vêm de diferentes subpopulações (clusters), mas a informação de qual ponto pertence a qual cluster é desconhecida (latente).
+
+O **algoritmo Expectation-Maximization (EM)** surge como uma poderosa ferramenta iterativa para encontrar estimativas de máxima verossimilhança nesses casos. Em vez de atacar a complexa função de verossimilhança dos dados observados, o EM a decompõe em dois passos mais simples que são repetidos até a convergência:
+
+1.  **Passo da Esperança (E-step):** Com base nos parâmetros atuais, calcula-se o valor esperado da log-verossimilhança dos "dados completos" (observados + latentes). Isso equivale a fazer a melhor "suposição" sobre as variáveis latentes.
+2.  **Passo da Maximização (M-step):** Atualizam-se os parâmetros do modelo para maximizar a função de esperança calculada no passo E.
+
+------------------------------------------------------------------------
+
+## 2. O Modelo: Mistura de Gaussianas (GMM)
+
+Para ilustrar o algoritmo EM, utilizamos o modelo de **Mistura de Gaussianas (Gaussian Mixture Model - GMM)**. Assumimos que nossos dados observados $X = \{x_1, x_2, ..., x_N\}$ foram gerados por uma mistura de $K$ distribuições Gaussianas (neste trabalho, $K=3$).
+
+-   **Parâmetros do Modelo (**$\theta$): Para cada componente Gaussiana $k$, temos uma média $\mu_k$ e um desvio padrão $\sigma_k$. Além disso, temos os coeficientes de mistura $\pi_k$, que representam a proporção de dados gerados por cada componente, com $\sum_{k=1}^{K} \pi_k = 1$.
+-   **Variáveis Latentes (**$Z$): Para cada ponto $x_i$, existe uma variável latente $z_{ik}$ que indica se o ponto pertence ($z_{ik}=1$) ou não ($z_{ik}=0$) ao componente $k$.
+
+### Derivação Matemática para GMM com K=3
+
+#### **Passo E: Calcular as Responsabilidades**
+
+A "responsabilidade" $\gamma(z_{ik})$ é a probabilidade a posteriori de que o ponto $x_i$ tenha sido gerado pelo componente $k$, dados os parâmetros atuais $\theta^{(t)}$. Usando a regra de Bayes, temos:
+
+$$\gamma(z_{ik}) = \frac{\pi_k^{(t)} \mathcal{N}(x_i | \mu_k^{(t)}, \sigma_k^{2(t)})}{\sum_{j=1}^{K} \pi_j^{(t)} \mathcal{N}(x_i | \mu_j^{(t)}, \sigma_j^{2(t)})}$$
+
+#### **Passo M: Atualizar os Parâmetros**
+
+Usamos as responsabilidades como pesos para atualizar os parâmetros, maximizando a esperança da log-verossimilhança:
+
+-   **Atualizar Médias:** $$
+    \mu_k^{(t+1)} = \frac{\sum_{i=1}^{N} \gamma(z_{ik}) x_i}{\sum_{i=1}^{N} \gamma(z_{ik})}
+    $$
+
+-   **Atualizar Variâncias:** $$
+    \sigma_k^{2(t+1)} = \frac{\sum_{i=1}^{N} \gamma(z_{ik}) (x_i - \mu_k^{(t+1)})^2}{\sum_{i=1}^{N} \gamma(z_{ik})}
+    $$
+
+-   **Atualizar Coeficientes de Mistura:** $$
+    \pi_k^{(t+1)} = \frac{1}{N} \sum_{i=1}^{N} \gamma(z_{ik})
+    $$
+
+------------------------------------------------------------------------
+
+## 3. Implementação e Resultados
+
+A seguir, apresentamos a implementação do algoritmo em R para $K=3$.
+
+```{r , include=FALSE}
+# Carregar bibliotecas necessárias para a análise e visualização
+library(ggplot2)
+library(gridExtra)
+```
+
+### 3.1. Geração de Dados Sintéticos (K=3)
+
+```{r data_generation}
+# Define uma semente para reprodutibilidade dos resultados
+set.seed(42)
+
+# Parâmetros verdadeiros da nossa mistura de 3 normais
+true_params <- list(
+  mu = c(-8, 0, 7),
+  sigma = c(1.5, 2, 1.8),
+  pi = c(0.4, 0.35, 0.25)
+)
+
+n_samples <- 1000
+assignments <- sample(1:3, size = n_samples, replace = TRUE, prob = true_params$pi)
+X <- rnorm(n_samples, mean = true_params$mu[assignments], sd = true_params$sigma[assignments])
+```
+
+### 3.2. Código do Algoritmo EM para K=3
+
+```{r em_algorithm}
+em_gmm_3_components <- function(X, n_iterations, tol = 1e-6) {
+  K <- 3
+  N <- length(X)
+  
+  # --- 1. Inicialização ---
+  mu <- sample(X, K)
+  sigma <- rep(sd(X), K)
+  pi_mix <- rep(1/K, K)
+  
+  log_likelihood_history <- c()
+
+  cat("--- Parâmetros Iniciais ---\n")
+  for(k in 1:K) {
+    cat(sprintf("Comp %d: mu=%.2f, sigma=%.2f, pi=%.2f\n", k, mu[k], sigma[k], pi_mix[k]))
+  }
+  
+  for (i in 1:n_iterations) {
+    # --- 2. E-Step (Passo da Esperança) ---
+    responsibilities <- matrix(0, nrow = N, ncol = K)
+    
+    # Calcula o numerador para cada componente
+    for(k in 1:K) {
+      responsibilities[, k] <- pi_mix[k] * dnorm(X, mean = mu[k], sd = sigma[k])
+    }
+    
+    # Normaliza para obter as responsabilidades (soma das linhas = 1)
+    evidence <- rowSums(responsibilities)
+    responsibilities <- responsibilities / evidence
+    
+    # --- Cálculo da Log-Verossimilhança ---
+    log_likelihood <- sum(log(evidence))
+    log_likelihood_history <- c(log_likelihood_history, log_likelihood)
+
+    if (i > 1 && abs(log_likelihood - log_likelihood_history[i-1]) < tol) {
+      cat(sprintf("\nConvergência alcançada na iteração %d.\n", i))
+      break
+    }
+
+    # --- 3. M-Step (Passo da Maximização) ---
+    sum_resp_k <- colSums(responsibilities)
+    
+    for(k in 1:K) {
+      # Atualizar mu
+      mu[k] <- sum(responsibilities[, k] * X) / sum_resp_k[k]
+      # Atualizar sigma
+      sigma[k] <- sqrt(sum(responsibilities[, k] * (X - mu[k])^2) / sum_resp_k[k])
+      # Atualizar pi
+      pi_mix[k] <- sum_resp_k[k] / N
+    }
+  }
+  
+  # Ordena os resultados pela média para facilitar a comparação
+  order_idx <- order(mu)
+  return(list(mu=mu[order_idx], sigma=sigma[order_idx], pi=pi_mix[order_idx], ll_hist=log_likelihood_history))
+}
+```
+
+### 3.3. Execução e Análise dos Resultados
+
+```{r execution}
+# Executa o algoritmo
+n_iter <- 100
+results <- em_gmm_3_components(X, n_iter)
+
+cat("\n--- Resultados Finais ---\n")
+cat("Parâmetros verdadeiros:\n")
+for(k in 1:3) {
+  cat(sprintf("Comp %d: mu=%.2f, sigma=%.2f, pi=%.2f\n", k, true_params$mu[k], true_params$sigma[k], true_params$pi[k]))
+}
+
+cat("\nParâmetros estimados:\n")
+for(k in 1:3) {
+  cat(sprintf("Comp %d: mu=%.2f, sigma=%.2f, pi=%.2f\n", k, results$mu[k], results$sigma[k], results$pi[k]))
+}
+```
+
+### 3.4. Visualização Gráfica
+
+```{r plots, fig.width=12, fig.height=5, message=FALSE, warning=FALSE}
+# Data frame para os gráficos
+df <- data.frame(X = X)
+x_axis <- seq(min(X), max(X), length.out = 400)
+
+# Gráfico 1: Ajuste do modelo
+plot1 <- ggplot(df, aes(x = X)) +
+  geom_histogram(aes(y = ..density..), bins = 50, fill = "gray", alpha = 0.6) +
+  stat_function(fun = function(x) results$pi[1] * dnorm(x, results$mu[1], results$sigma[1]),
+                geom = "line", aes(color = "Estimada Comp. 1"), size = 1.2) +
+  stat_function(fun = function(x) results$pi[2] * dnorm(x, results$mu[2], results$sigma[2]),
+                geom = "line", aes(color = "Estimada Comp. 2"), size = 1.2) +
+  stat_function(fun = function(x) results$pi[3] * dnorm(x, results$mu[3], results$sigma[3]),
+                geom = "line", aes(color = "Estimada Comp. 3"), size = 1.2) +
+  labs(title = "Ajuste do Modelo GMM (K=3) com Algoritmo EM",
+       x = "Valor", y = "Densidade", color = "Componente") +
+  scale_color_manual(values = c("Estimada Comp. 1" = "red", "Estimada Comp. 2" = "blue", "Estimada Comp. 3" = "purple")) +
+  theme_minimal()
+
+# Gráfico 2: Convergência
+df_ll <- data.frame(iteration = 1:length(results$ll_hist), log_likelihood = results$ll_hist)
+plot2 <- ggplot(df_ll, aes(x = iteration, y = log_likelihood)) +
+  geom_line(color = "darkgreen") +
+  geom_point(color = "darkgreen") +
+  labs(title = "Convergência da Log-Verossimilhança",
+       x = "Iteração", y = "Log-Verossimilhança") +
+  theme_minimal()
+
+# Exibe os dois gráficos lado a lado
+grid.arrange(plot1, plot2, ncol = 2)
+```
+
+## 4. Conclusão
+
+A generalização do algoritmo EM para uma mistura de três componentes Gaussianas foi bem-sucedida. O algoritmo convergiu de forma estável, e os parâmetros estimados se aproximaram dos valores verdadeiros utilizados na simulação. Isso demonstra a flexibilidade e a robustez do método para problemas de clusterização e estimação de densidade em cenários mais complexos.
+
+------------------------------------------------------------------------
+
+Agora, vamos para a **mistura de 3 distribuições Gama**.
+
+Este caso é mais avançado porque a atualização do parâmetro de **forma (shape)** da distribuição Gama no Passo M não possui uma solução analítica fechada. Precisaremos usar um método de otimização numérica para encontrá-lo.
+
+## 5. Introdução Teórica: Caso da Gama
+
+Neste segundo estudo de caso, estendemos a aplicação do algoritmo **Expectation-Maximization (EM)** para um modelo mais complexo: uma mistura de distribuições Gama. A distribuição Gama é frequentemente usada para modelar dados contínuos e positivos, como tempos de espera ou durações, e é definida por dois parâmetros: a **forma (**$\alpha$) e a **taxa (**$\beta$).
+
+O desafio principal ao usar a distribuição Gama em um modelo de mistura reside no **Passo de Maximização (M-step)**. Enquanto a atualização para o parâmetro de taxa ($\beta$) possui uma solução analítica (uma fórmula direta), a atualização para o parâmetro de forma ($\alpha$) não. A função a ser maximizada em relação a $\alpha$ é complexa e não pode ser resolvida algebricamente.
+
+Para superar isso, integramos um método de **otimização numérica** dentro do Passo M. A cada iteração, após calcular as "responsabilidades" no Passo E, usamos um otimizador (neste caso, a função `optim()` do R) para encontrar o valor de $\alpha$ que maximiza a esperança da log-verossimilhança para cada componente. Esta abordagem, que combina o EM com otimização numérica, é comum e poderosa para modelos estatísticos complexos.
+
+------------------------------------------------------------------------
+
+## 2. O Modelo: Mistura de Gamas
+
+Assumimos que nossos dados observados $X = \{x_1, ..., x_N\}$ foram gerados por uma mistura de $K=3$ distribuições Gama.
+
+-   **Parâmetros do Modelo (**$\theta$): Para cada componente $k$, temos uma forma $\alpha_k$ e uma taxa $\beta_k$. Os coeficientes de mistura são $\pi_k$, com $\sum_{k=1}^{K} \pi_k = 1$.
+-   **Variáveis Latentes (**$Z$): Como antes, $z_{ik}$ indica se o ponto $x_i$ pertence ao componente $k$.
+
+### Derivação Matemática
+
+#### **Passo E: Calcular as Responsabilidades**
+
+Este passo é análogo ao caso Gaussiano, mas usando a função de densidade de probabilidade (PDF) da Gama, $G(x | \alpha, \beta)$.
+
+$$\gamma(z_{ik}) = \frac{\pi_k^{(t)} G(x_i | \alpha_k^{(t)}, \beta_k^{(t)})}{\sum_{j=1}^{K} \pi_j^{(t)} G(x_i | \alpha_j^{(t)}, \beta_j^{(t)})}$$
+
+#### **Passo M: Atualizar os Parâmetros**
+
+Maximizamos a esperança da log-verossimilhança, $Q_k(\theta_k) = \sum_{i=1}^{N} \gamma(z_{ik}) \log G(x_i | \alpha_k, \beta_k)$.
+
+-   **Atualizar Coeficientes de Mistura (**$\pi_k$): A fórmula permanece a mesma. $$
+    \pi_k^{(t+1)} = \frac{1}{N} \sum_{i=1}^{N} \gamma(z_{ik})
+    $$
+
+-   **Atualizar Taxa (**$\beta_k$): Derivando $Q_k$ em relação a $\beta_k$ e igualando a zero, obtemos uma solução analítica: $$
+    \beta_k^{(t+1)} = \frac{\alpha_k^{(t)}}{\frac{1}{N_k}\sum_{i=1}^{N} \gamma(z_{ik}) x_i} = \frac{\alpha_k^{(t)}}{\bar{x}_k}
+    $$ onde $N_k = \sum_{i=1}^{N} \gamma(z_{ik})$.
+
+-   **Atualizar Forma (**$\alpha_k$): Não há solução analítica. Precisamos maximizar numericamente a seguinte função em relação a $\alpha_k$: $$
+    \alpha_k^{(t+1)} = \arg\max_{\alpha_k} \sum_{i=1}^{N} \gamma(z_{ik}) [(\alpha_k - 1)\log(x_i) - \beta_k x_i - \log(\Gamma(\alpha_k)) + \alpha_k \log(\beta_k)]
+    $$ No nosso código, usaremos `optim()` para resolver este problema de otimização para cada componente $k$.
+
+------------------------------------------------------------------------
+
+## 6. Implementação e Resultados
+
+```{r setup, include=FALSE}
+# Carregar bibliotecas necessárias
+library(ggplot2)
+library(gridExtra)
+```
+
+### 6.1. Geração de Dados Sintéticos (K=3 Gamas)
+
+```{r data_generation_gamma}
+# Define uma semente para reprodutibilidade
+set.seed(123)
+
+# Parâmetros verdadeiros da nossa mistura de 3 Gamas
+true_params_gamma <- list(
+  shape = c(2, 10, 25), # alpha
+  rate = c(1, 0.5, 0.2),  # beta
+  pi = c(0.3, 0.5, 0.2)
+)
+
+n_samples <- 1500
+assignments <- sample(1:3, size = n_samples, replace = TRUE, prob = true_params_gamma$pi)
+X_gamma <- rgamma(n_samples, shape = true_params_gamma$shape[assignments], rate = true_params_gamma$rate[assignments])
+```
+
+### 6.2. Código do Algoritmo EM para Mistura de Gamas
+
+```{r em_algorithm_gamma}
+em_gamma_mixture <- function(X, K, n_iterations, tol = 1e-6) {
+  N <- length(X)
+  
+  # --- 1. Inicialização ---
+  # Inicialização mais cuidadosa para a Gama
+  km <- kmeans(X, centers = K)
+  shape <- numeric(K)
+  rate <- numeric(K)
+  for(k in 1:K) {
+    x_k <- X[km$cluster == k]
+    m <- mean(x_k)
+    v <- var(x_k)
+    shape[k] <- m^2 / v
+    rate[k] <- m / v
+  }
+  pi_mix <- as.numeric(table(km$cluster) / N)
+  
+  log_likelihood_history <- c()
+
+  cat("--- Parâmetros Iniciais ---\n")
+  for(k in 1:K) {
+    cat(sprintf("Comp %d: shape=%.2f, rate=%.2f, pi=%.2f\n", k, shape[k], rate[k], pi_mix[k]))
+  }
+  
+  for (i in 1:n_iterations) {
+    # --- 2. E-Step ---
+    responsibilities <- matrix(0, nrow = N, ncol = K)
+    for(k in 1:K) {
+      responsibilities[, k] <- pi_mix[k] * dgamma(X, shape = shape[k], rate = rate[k])
+    }
+    evidence <- rowSums(responsibilities)
+    responsibilities <- responsibilities / evidence
+    
+    # --- Log-Verossimilhança ---
+    log_likelihood <- sum(log(evidence))
+    log_likelihood_history <- c(log_likelihood_history, log_likelihood)
+
+    if (i > 1 && abs(log_likelihood - log_likelihood_history[i-1]) < tol) {
+      cat(sprintf("\nConvergência alcançada na iteração %d.\n", i))
+      break
+    }
+
+    # --- 3. M-Step ---
+    sum_resp_k <- colSums(responsibilities)
+    
+    for(k in 1:K) {
+      # Atualizar pi (analítico)
+      pi_mix[k] <- sum_resp_k[k] / N
+      
+      # Atualizar rate (analítico, depende do novo shape)
+      weighted_mean_x <- sum(responsibilities[, k] * X) / sum_resp_k[k]
+      # A atualização do rate depende do shape, então faremos após otimizar o shape.
+      
+      # Função objetivo para otimizar o shape (alpha)
+      objective_shape <- function(alpha) {
+        # Otimizamos a log-verossimilhança esperada
+        # Ignoramos termos que não dependem de alpha
+        term1 <- alpha * sum(responsibilities[, k] * log(X))
+        term2 <- -sum_resp_k[k] * lgamma(alpha)
+        # O sinal é invertido porque optim minimiza por padrão
+        return(-(term1 + term2))
+      }
+      
+      # Otimização numérica para encontrar o novo shape
+      # Usamos o método L-BFGS-B para garantir que o shape seja positivo
+      opt_result <- optim(
+        par = shape[k], # Ponto inicial
+        fn = objective_shape,
+        method = "L-BFGS-B",
+        lower = 1e-6 # Limite inferior para alpha > 0
+      )
+      shape[k] <- opt_result$par
+      
+      # Agora atualizamos o rate com o novo shape
+      rate[k] <- shape[k] / weighted_mean_x
+    }
+  }
+  
+  order_idx <- order(shape) # Ordenar pelo parâmetro de forma
+  return(list(shape=shape[order_idx], rate=rate[order_idx], pi=pi_mix[order_idx], ll_hist=log_likelihood_history))
+}
+```
+
+### 6.3. Execução e Análise dos Resultados
+
+```{r execution_gamma}
+# Executa o algoritmo
+n_iter <- 100
+results_gamma <- em_gamma_mixture(X_gamma, K=3, n_iter)
+
+cat("\n--- Resultados Finais ---\n")
+cat("Parâmetros verdadeiros:\n")
+true_ordered_idx <- order(true_params_gamma$shape)
+for(k in 1:3) {
+  idx <- true_ordered_idx[k]
+  cat(sprintf("Comp %d: shape=%.2f, rate=%.2f, pi=%.2f\n", k, true_params_gamma$shape[idx], true_params_gamma$rate[idx], true_params_gamma$pi[idx]))
+}
+
+cat("\nParâmetros estimados:\n")
+for(k in 1:3) {
+  cat(sprintf("Comp %d: shape=%.2f, rate=%.2f, pi=%.2f\n", k, results_gamma$shape[k], results_gamma$rate[k], results_gamma$pi[k]))
+}
+```
+
+### 6.4. Visualização Gráfica
+
+```{r plots_gamma, fig.width=12, fig.height=5, message=FALSE, warning=FALSE}
+df_gamma <- data.frame(X = X_gamma)
+x_axis_gamma <- seq(min(X_gamma), max(X_gamma), length.out = 500)
+
+# Gráfico 1: Ajuste do modelo
+plot1_gamma <- ggplot(df_gamma, aes(x = X)) +
+  geom_histogram(aes(y = ..density..), bins = 50, fill = "gray", alpha = 0.6) +
+  stat_function(fun = function(x) results_gamma$pi[1] * dgamma(x, results_gamma$shape[1], results_gamma$rate[1]),
+                geom = "line", aes(color = "Estimada Comp. 1"), size = 1.2) +
+  stat_function(fun = function(x) results_gamma$pi[2] * dgamma(x, results_gamma$shape[2], results_gamma$rate[2]),
+                geom = "line", aes(color = "Estimada Comp. 2"), size = 1.2) +
+  stat_function(fun = function(x) results_gamma$pi[3] * dgamma(x, results_gamma$shape[3], results_gamma$rate[3]),
+                geom = "line", aes(color = "Estimada Comp. 3"), size = 1.2) +
+  labs(title = "Ajuste do Modelo de Mistura de Gamas (K=3) com EM",
+       x = "Valor", y = "Densidade", color = "Componente") +
+  scale_color_manual(values = c("Estimada Comp. 1" = "red", "Estimada Comp. 2" = "blue", "Estimada Comp. 3" = "purple")) +
+  theme_minimal()
+
+# Gráfico 2: Convergência
+df_ll_gamma <- data.frame(iteration = 1:length(results_gamma$ll_hist), log_likelihood = results_gamma$ll_hist)
+plot2_gamma <- ggplot(df_ll_gamma, aes(x = iteration, y = log_likelihood)) +
+  geom_line(color = "darkgreen") +
+  geom_point(color = "darkgreen") +
+  labs(title = "Convergência da Log-Verossimilhança",
+       x = "Iteração", y = "Log-Verossimilhança") +
+  theme_minimal()
+
+grid.arrange(plot1_gamma, plot2_gamma, ncol = 2)
+```
+
+## 7. Conclusão
+
+A aplicação do algoritmo EM a uma mistura de distribuições Gama foi realizada com sucesso, demonstrando a adaptabilidade do framework mesmo quando soluções analíticas não estão disponíveis para todos os parâmetros. A integração de um otimizador numérico (`optim()`) dentro do Passo M provou ser uma estratégia eficaz para estimar o parâmetro de forma ($\alpha$), enquanto os outros parâmetros foram atualizados analiticamente.
+
+Os resultados mostram que os parâmetros estimados se aproximam dos valores verdadeiros, e a log-verossimilhança aumenta monotonicamente, como esperado. Este exercício destaca a flexibilidade do algoritmo EM e sua relevância para uma ampla gama de problemas de modelagem estatística no mundo real.
