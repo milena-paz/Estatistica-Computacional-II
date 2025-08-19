@@ -1,0 +1,378 @@
+---
+title: "Teoria de Estoques e Simulação de Processos de Chegada com Distribuição de Poisson"
+author: "Bruna Cruz Siqueira"
+date: "`05-08-2025"
+output:
+  html_document:
+    theme: cerulean      # Muda o tema visual. Outras opções: journal, flatly, sandstone
+    toc: true            # Adiciona um Sumário (Table of Contents)
+    toc_float: true      # Faz o Sumário flutuar na lateral da página
+    df_print: kable      # Faz com que todos os dataframes sejam impressos com kable por padrão
+
+---
+
+# Teoria de Estoques e Simulação de Processos de Chegada com Distribuição de Poisson
+
+## 1. Introdução
+
+A gestão eficiente de estoques é um pilar fundamental para o sucesso de qualquer organização que lida com produtos físicos, seja na manufatura, varejo ou serviços. Em um ambiente de negócios cada vez mais dinâmico e incerto, a capacidade de otimizar os níveis de estoque impacta diretamente a lucratividade, a satisfação do cliente e a competitividade. A **Teoria de Estoques** fornece as ferramentas e modelos matemáticos necessários para tomar decisões informadas sobre quando e quanto pedir, minimizando custos e garantindo a disponibilidade de produtos [1].
+
+No entanto, muitos dos desafios reais na gestão de estoques envolvem a variabilidade e a incerteza, características inerentes a processos estocásticos como a demanda de clientes e o tempo de reposição de produtos. Nesses cenários, a **simulação computacional** emerge como uma metodologia poderosa para analisar o comportamento de sistemas complexos, testar diferentes políticas de estoque e prever seu desempenho sob diversas condições, sem a necessidade de intervir no sistema real [2]. Este artigo acadêmico explora a intersecção entre a Teoria de Estoques e a simulação de processos de chegada, com foco na Distribuição de Poisson, fornecendo uma fundamentação teórica robusta e diretrizes para a modelagem em simulações.
+
+## 2. Fundamentação Teórica
+
+### 2.1. Teoria de Estoques
+
+A Teoria de Estoques busca equilibrar os custos associados à manutenção de estoques com os custos de não ter estoque suficiente para atender à demanda. Os modelos clássicos de estoque são a base para a compreensão e otimização dessa balança [3].
+
+#### 2.1.1. Modelos Clássicos
+
+O **Modelo de Lote Econômico de Compra (EOQ - Economic Order Quantity)** é um dos modelos mais fundamentais, que determina a quantidade ótima de pedido que minimiza a soma dos custos de pedido e de manutenção. A fórmula do EOQ é dada por:
+
+$$ EOQ = \sqrt{\frac{2DS}{H}} $$
+
+Onde:
+*   $D$ = Demanda anual
+*   $S$ = Custo por pedido
+*   $H$ = Custo de manutenção por unidade por ano
+
+Outros modelos importantes incluem os **modelos com ponto de ressuprimento (ROP - Reorder Point)**, que disparam um novo pedido quando o nível de estoque atinge um ponto pré-determinado, e os sistemas de **revisão contínua (Q-system)** e **revisão periódica (P-system)**. No sistema Q, o estoque é monitorado continuamente e um pedido de tamanho fixo é feito quando o ROP é atingido. No sistema P, o estoque é revisado em intervalos fixos e um pedido de tamanho variável é feito para elevar o estoque a um nível alvo [4].
+
+#### 2.1.2. Custos Envolvidos
+
+Os principais custos na gestão de estoques são:
+
+*   **Custo de Pedido (Ordering Cost):** Associado à emissão e processamento de um pedido, incluindo custos administrativos, de transporte e de recebimento.
+*   **Custo de Manutenção (Holding Cost):** Relacionado à posse do estoque, incluindo capital empatado, armazenagem, obsolescência, seguro e perdas.
+*   **Custo de Falta (Shortage Cost):** Decorrente da incapacidade de atender à demanda, podendo ser perda de vendas, insatisfação do cliente ou custos de produção acelerada [3].
+
+#### 2.1.3. Tipos de Demanda e Lead Time
+
+A demanda pode ser **determinística**, quando é conhecida e constante, ou **probabilística (estocástica)**, quando varia aleatoriamente. A maioria dos cenários reais envolve demanda probabilística, o que exige o uso de estoque de segurança para mitigar riscos de falta. O **lead time (tempo de reposição)** é o tempo entre a emissão de um pedido e o recebimento do produto. A variabilidade no lead time também é um fator crítico que influencia a necessidade de estoque de segurança [5].
+
+### 2.2. Processos de Chegada com Distribuição de Poisson
+
+Um **Processo de Poisson** é um modelo estocástico que descreve o número de eventos que ocorrem em um intervalo de tempo fixo ou em uma região específica, dado que esses eventos ocorrem com uma taxa média constante e independentemente uns dos outros. É amplamente utilizado para modelar chegadas de clientes em sistemas de fila, ocorrências de falhas em equipamentos, e, crucialmente, a demanda em sistemas de estoque [6].
+
+#### 2.2.1. Propriedades do Processo de Poisson
+
+As principais propriedades de um processo de Poisson com taxa $\lambda$ são:
+
+*   **Estacionariedade:** A probabilidade de um evento ocorrer em um intervalo de tempo depende apenas do comprimento do intervalo, não de sua localização no tempo.
+*   **Independência de Incrementos:** O número de eventos em intervalos de tempo disjuntos são variáveis aleatórias independentes.
+*   **Distribuição Exponencial dos Tempos Entre Chegadas:** Se o número de chegadas segue uma distribuição de Poisson, então o tempo entre chegadas consecutivas segue uma distribuição exponencial com média $1/\lambda$. A função de densidade de probabilidade (PDF) para o tempo entre chegadas $T$ é:
+
+    $$ f(t) = \lambda e^{-\lambda t} \quad \text{para } t \ge 0 $$
+
+*   **Distribuição de Poisson para o Número de Chegadas:** O número de chegadas $N(t)$ em um intervalo de tempo de duração $t$ segue uma distribuição de Poisson com parâmetro $\lambda t$. A função de massa de probabilidade (PMF) é:
+
+    $$ P(N(t) = k) = \frac{e^{-\lambda t} (\lambda t)^k}{k!} \quad \text{para } k = 0, 1, 2, \dots $$
+
+#### 2.2.2. Aplicações e Relação com Processos de Markov
+
+Processos de Poisson são fundamentais em **Teoria das Filas**, onde modelam a chegada de clientes a um sistema. Em **estoques**, são usados para representar a demanda por itens em períodos de tempo. A simplicidade e as propriedades matemáticas dos processos de Poisson os tornam ideais para simulações de eventos discretos. Além disso, há uma forte relação entre processos de Poisson e **Processos de Markov**, especialmente em cadeias de Markov de tempo contínuo, onde as transições entre estados ocorrem de acordo com taxas exponenciais, análogas aos tempos entre chegadas de Poisson [7].
+
+## 3. Metodologia de Simulação
+
+A simulação de sistemas de estoque com demanda e lead time estocásticos, modelados por processos de Poisson, é uma ferramenta essencial para a análise de desempenho e a tomada de decisões. A linguagem R, com seus pacotes estatísticos e de simulação, é particularmente adequada para essa finalidade.
+
+### 3.1. Modelagem da Chegada de Clientes/Demanda
+
+Para simular a demanda de clientes ou a chegada de pedidos usando um processo de Poisson, o primeiro passo é definir a taxa média de chegada ($\lambda$). Por exemplo, se a demanda média diária é de 10 unidades, então $\lambda = 10$ unidades/dia. A geração de eventos de demanda pode ser feita de duas maneiras principais:
+
+1.  **Geração do Número de Eventos em um Intervalo:** Para simular a demanda em um dia, pode-se gerar um número aleatório a partir de uma distribuição de Poisson com parâmetro $\lambda \times 1$ (se $\lambda$ for a taxa diária). Em R, isso pode ser feito com `rpois(n=1, lambda = lambda_diaria)`.
+2.  **Geração dos Tempos Entre Eventos:** Alternativamente, pode-se gerar os tempos entre chegadas consecutivas usando uma distribuição exponencial com taxa $\lambda$. Em R, `rexp(n=1, rate = lambda)` geraria o tempo até a próxima chegada. A soma desses tempos determinaria quando o próximo evento de demanda ocorreria.
+
+### 3.2. Integração com Modelos de Estoque
+
+A integração da demanda simulada com os modelos de estoque permite avaliar o impacto da variabilidade. Por exemplo, em um sistema de revisão contínua (Q-system), a simulação pode rastrear o nível de estoque ao longo do tempo, registrando quando o ROP é atingido e quando os pedidos são feitos e recebidos. A variabilidade na demanda (modelada por Poisson) e no lead time (que também pode ser modelado por uma distribuição, como a uniforme ou normal, ou até mesmo exponencial) afetará a frequência de pedidos, os níveis de estoque de segurança necessários e a ocorrência de faltas.
+
+Ao simular, é possível coletar métricas de desempenho como:
+
+*   Nível médio de estoque
+*   Número de faltas e seu custo associado
+*   Número de pedidos e seu custo associado
+*   Custo total do sistema de estoque
+
+Essas métricas permitem comparar diferentes políticas de estoque (e.g., diferentes ROPs ou tamanhos de pedido) e identificar a que melhor se adapta às condições de demanda e lead time estocásticas. A simulação oferece um ambiente controlado para experimentação, onde os parâmetros do sistema podem ser ajustados e seus efeitos observados sem risco real.
+
+### 3.3 Método de Monte Carlo
+O Método de Monte Carlo é uma técnica estocástica utilizada para resolver problemas complexos por meio de simulações baseadas em amostragem aleatória.
+Trata-se de um método amplamente empregado em diversas áreas da ciência e, particularmente, na simulação computacional de sistemas logísticos e de produção, devido à sua capacidade de modelar incertezas e comportamentos aleatórios de variáveis. Em contextos como o gerenciamento de estoques, o Método de Monte Carlo permite simular diferentes cenários de demanda, lead time e falhas no abastecimento, fornecendo uma visão mais robusta sobre o desempenho de políticas de estoque sob incertezas.
+
+A base do método consiste em repetir um experimento computacional diversas vezes, utilizando números pseudoaleatórios para representar os eventos incertos. Com isso, é possível estimar distribuições, médias, variâncias, probabilidades e outros parâmetros de interesse a partir da análise estatística dos resultados simulados.
+
+Por exemplo, ao se considerar a chegada de pedidos de clientes como um processo de Poisson e o tempo de reposição de estoque como uma variável aleatória (como distribuição exponencial ou uniforme), pode-se utilizar Monte Carlo para avaliar a probabilidade de ruptura de estoque, o nível médio de inventário e o custo total esperado, com base em 1.000 ou mais simulações do ciclo de operação.
+
+## 4 Simulação 
+
+### 4.1 Exemplo Simples de Estoque 
+
+Simulação computacional simples para representar o comportamento de um sistema de controle de estoque de um único produto, no caso, **água**, ao longo de um período determinado. A simulação desenvolvida não busca reproduzir um sistema real com alta precisão, mas sim oferecer uma abordagem conceitual sobre como variáveis aleatórias como demanda diária, prazo de entrega e frequência de pedidos podem ser incorporadas na modelagem de estoques. Os parâmetros utilizados, como quantidade inicial, limite mínimo para reposição, quantidade a ser reposta, tempo de entrega, entre outros, foram definidos com base em valores arbitrários e plausíveis, escolhidos por bom senso e com a finalidade de tornar o modelo compreensível e funcional.
+
+Ao simular 1.000 cenários diferentes para o comportamento da demanda ao longo dos dias, utilizando distribuições aleatórias simples, conseguimos observar o impacto das variabilidades no risco de ruptura de estoque, na frequência de pedidos de reposição e no desempenho geral do sistema. A aplicação do método permitiu quantificar de forma empírica a probabilidade de desabastecimento e o tempo médio até a próxima reposição, fornecendo informações úteis para o processo decisório.
+
+Essa simulação ilustra a potência do uso de técnicas de simulação estocástica mesmo em contextos iniciais, e destaca como a estatística computacional pode contribuir para a compreensão e análise de fenômenos operacionais em ambientes de incerteza.
+
+
+
+```{r  message=FALSE}
+
+# Carregar a biblioteca para gráficos
+library(ggplot2)
+
+# Usar set.seed garante que os resultados "aleatórios" sejam os mesmos toda vez
+set.seed(666)
+
+# Parâmetros da simulação e do estoque
+dias_simulados <- 60
+simulacoes <- 1000
+lambda_demanda <- 20
+lead_time <- 2
+ponto_ressuprimento <- 30
+quantidade_pedido <- 100
+estoque_inicial <- 100
+
+# Parâmetros de Custo
+custo_pedido <- 40.00        # Custo fixo por fazer um pedido
+custo_holding_unit <- 0.25   # Custo para manter 1 unidade por 1 dia
+custo_falta_unit <- 5.00     # Penalidade por faltar 1 unidade quando demandada
+custo_unitario_produto <- 8.00   # NOVO: Preço de compra de cada unidade
+
+# --------------------------------------------------------------------------
+# 2. DEFINIÇÃO DA FUNÇÃO DE SIMULAÇÃO
+# --------------------------------------------------------------------------
+simular_estoque_df <- function(dias, lambda, lead, reord_point, qtd_pedido, estoque_ini,
+                               cost_order, cost_hold, cost_short) {
+  
+  demanda <- rpois(dias, lambda)
+  pedidos_em_andamento <- rep(0, dias + lead)
+  estoque_atual <- estoque_ini
+  
+  # Vetores de dados físicos
+  estoque <- numeric(dias)
+  pedido_chega <- numeric(dias)
+  unidades_faltantes <- numeric(dias)
+  pedido_ativo <- FALSE
+  
+  # Vetores para armazenar custos diários
+  custo_pedido_dia <- numeric(dias)
+  custo_holding_dia <- numeric(dias)
+  custo_falta_dia <- numeric(dias)
+
+  for (dia in 1:dias) {
+    # 1. Receber pedidos que chegam hoje
+    estoque_atual <- estoque_atual + pedidos_em_andamento[dia]
+    pedido_chega[dia] <- pedidos_em_andamento[dia]
+    if (pedidos_em_andamento[dia] > 0) {
+      pedido_ativo <- FALSE
+    }
+    
+    # 2. Atender à demanda e calcular CUSTO DE FALTA
+    if (estoque_atual < demanda[dia]) {
+      unidades_faltantes[dia] <- demanda[dia] - estoque_atual
+      custo_falta_dia[dia] <- unidades_faltantes[dia] * cost_short
+    }
+    
+    estoque_atual <- estoque_atual - demanda[dia]
+    if (estoque_atual < 0) estoque_atual <- 0
+    
+    # 3. Registrar estoque final e calcular CUSTO DE MANUTENÇÃO
+    estoque[dia] <- estoque_atual
+    custo_holding_dia[dia] <- estoque[dia] * cost_hold
+    
+    # 4. Verificar reposição e calcular CUSTO DE PEDIDO
+    if (estoque_atual <= reord_point && !pedido_ativo) {
+      pedidos_em_andamento[dia + lead] <- qtd_pedido
+      pedido_ativo <- TRUE
+      custo_pedido_dia[dia] <- cost_order
+    }
+  }
+  
+  # Adicionar colunas de custo ao dataframe de resultado
+  df <- data.frame(
+    Dia = 1:dias,
+    Demanda = demanda,
+    Estoque = estoque,
+    PedidoChega = pedido_chega,
+    UnidadesFaltantes = unidades_faltantes,
+    CustoPedidoDia = custo_pedido_dia,
+    CustoHoldingDia = custo_holding_dia,
+    CustoFaltaDia = custo_falta_dia
+  )
+  return(df)
+}
+
+# --------------------------------------------------------------------------
+# 3. ANÁLISE DE UMA ÚNICA SIMULAÇÃO
+# --------------------------------------------------------------------------
+# 3.1. Executando a simulação uma única vez
+df_simulacao_unica <- simular_estoque_df(
+  dias = dias_simulados, lambda = lambda_demanda, lead = lead_time,
+  reord_point = ponto_ressuprimento, qtd_pedido = quantidade_pedido,
+  estoque_ini = estoque_inicial, cost_order = custo_pedido,
+  cost_hold = custo_holding_unit, cost_short = custo_falta_unit
+)
+
+# 3.2. Exibindo a tabela de dados da simulação única
+print(summary(df_simulacao_unica))
+print(head(df_simulacao_unica, 10))
+
+# 3.3. CÁLCULO E EXIBIÇÃO DO CUSTO TOTAL DA SIMULAÇÃO ÚNICA
+# Soma cada coluna de custo para obter o total
+custo_pedido_unico <- sum(df_simulacao_unica$CustoPedidoDia)
+custo_holding_unico <- sum(df_simulacao_unica$CustoHoldingDia)
+custo_falta_unico <- sum(df_simulacao_unica$CustoFaltaDia)
+custo_total_unico <- custo_pedido_unico + custo_holding_unico + custo_falta_unico
+
+# Exibe os resultados de forma organizada
+cat(paste("Custo Total de Pedidos....: R$", round(custo_pedido_unico, 2), "\n"))
+cat(paste("Custo Total de Manutenção..: R$", round(custo_holding_unico, 2), "\n"))
+cat(paste("Custo Total de Falta.......: R$", round(custo_falta_unico, 2), "\n"))
+cat(paste("CUSTO TOTAL..............: R$", round(custo_total_unico, 2), "\n\n"))
+
+# 3.4. Gerando o gráfico do estoque da simulação única
+dias_chegada <- df_simulacao_unica[df_simulacao_unica$PedidoChega > 0, ]
+print("Gerando o gráfico para UMA simulação...")
+grafico_simulacao_unica <- ggplot(df_simulacao_unica, aes(x = Dia, y = Estoque)) +
+  geom_line(color = "darkblue", size = 1) +
+  geom_point(color = "darkblue", alpha = 0.5) +
+  labs(
+    title = "Gráfico de Uma Única Simulação de Estoque",
+    subtitle = "Linha azul: estoque diário.",
+    y = "Nível de Estoque", x = "Dias"
+  ) +
+  theme_minimal()
+print(grafico_simulacao_unica)
+
+# --------------------------------------------------------------------------
+# 4. SIMULAÇÃO DE MONTE CARLO (1000 Réplicas)
+# --------------------------------------------------------------------------
+
+# Vetores para armazenar resultados físicos e financeiros
+estoques_montecarlo <- matrix(0, nrow = simulacoes, ncol = dias_simulados)
+custos_totais_mc <- numeric(simulacoes)
+custos_pedido_mc <- numeric(simulacoes)
+custos_holding_mc <- numeric(simulacoes)
+custos_falta_mc <- numeric(simulacoes)
+giro_estoque_mc <- numeric(simulacoes) # NOVO: Vetor para armazenar o giro
+
+# Loop de execução
+for (i in 1:simulacoes) {
+  resultado <- simular_estoque_df(
+    dias = dias_simulados, lambda = lambda_demanda, lead = lead_time,
+    reord_point = ponto_ressuprimento, qtd_pedido = quantidade_pedido,
+    estoque_ini = estoque_inicial, cost_order = custo_pedido,
+    cost_hold = custo_holding_unit, cost_short = custo_falta_unit
+  )
+  
+  # Armazenar resultados físicos e financeiros da simulação 'i'
+  estoques_montecarlo[i, ] <- resultado$Estoque
+  custos_pedido_mc[i] <- sum(resultado$CustoPedidoDia)
+  custos_holding_mc[i] <- sum(resultado$CustoHoldingDia)
+  custos_falta_mc[i] <- sum(resultado$CustoFaltaDia)
+  custos_totais_mc[i] <- custos_pedido_mc[i] + custos_holding_mc[i] + custos_falta_mc[i]
+  
+  # NOVO: Calcular e armazenar o GIRO DE ESTOQUE para a simulação 'i'
+  unidades_atendidas <- sum(resultado$Demanda) - sum(resultado$UnidadesFaltantes)
+  estoque_medio_unidades <- mean(resultado$Estoque)
+  
+  # Evitar divisão por zero se o estoque médio for 0
+  if (estoque_medio_unidades > 0) {
+    giro_estoque_mc[i] <- unidades_atendidas / estoque_medio_unidades
+  } else {
+    giro_estoque_mc[i] <- 0
+  }
+}
+
+# --------------------------------------------------------------------------
+# 5. ANÁLISE DOS RESULTADOS AGREGADOS (FÍSICOS E FINANCEIROS)
+# --------------------------------------------------------------------------
+
+# 5.1. Análise do Estoque Físico Médio
+estoque_medio <- colMeans(estoques_montecarlo)
+estoque_sd <- apply(estoques_montecarlo, 2, sd)
+df_plot_media <- data.frame(Dia = 1:dias_simulados, Estoque_Medio = estoque_medio, Estoque_SD = estoque_sd)
+
+print("Gerando o gráfico do estoque médio...")
+grafico_media_monte_carlo <- ggplot(df_plot_media, aes(x = Dia, y = Estoque_Medio)) +
+  geom_line(color = "blue", size = 1) +
+  geom_ribbon(aes(ymin = Estoque_Medio - Estoque_SD, ymax = Estoque_Medio + Estoque_SD), fill = "orange", alpha = 0.4) +
+  labs(
+    title = "Nível Médio de Estoque (1000 Réplicas)",
+    subtitle = "Linha azul: média do estoque final. Área laranja: ±1 desvio padrão.",
+    y = "Estoque Médio", x = "Dias"
+  ) +
+  theme_minimal()
+print(grafico_media_monte_carlo)
+
+# 5.2. Análise Financeira - Resumo e Distribuição de Custo
+print("Resumo do Custo Total por Simulação (60 dias):")
+print(summary(custos_totais_mc))
+
+# 5.3. Análise Financeira - Decomposição do Custo Médio
+print("Gerando o gráfico de decomposição de custos...")
+df_custo_medio <- data.frame(
+  Componente = c("Custo de Manutenção", "Custo de Pedido", "Custo de Falta"),
+  ValorMedio = c(mean(custos_holding_mc), mean(custos_pedido_mc), mean(custos_falta_mc))
+)
+grafico_decomp_custo <- ggplot(df_custo_medio, aes(x = reorder(Componente, -ValorMedio), y = ValorMedio, fill = Componente)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = paste0("R$ ", round(ValorMedio, 2))), vjust = -0.5, size = 4) +
+  labs(
+    title = "Decomposição do Custo Total Médio",
+    subtitle = "Média dos custos por componente em 1000 simulações",
+    x = "Componente de Custo", y = "Custo Médio (R$)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+print(grafico_decomp_custo)
+
+# --------------------------------------------------------------------------
+# 6. ANÁLISE DO KPI: GIRO DE ESTOQUE (NOVO)
+# --------------------------------------------------------------------------
+# 6.1. Resumo estatístico do Giro de Estoque
+print(paste("Resumo do Giro de Estoque para o período de", dias_simulados, "dias:"))
+print(summary(giro_estoque_mc))
+
+# 6.2. Anualização do Giro (para comparação)
+giro_medio_periodo <- mean(giro_estoque_mc)
+giro_anualizado <- giro_medio_periodo * (365 / dias_simulados)
+cat(paste("\nO giro médio anualizado é de aproximadamente:", round(giro_anualizado, 2), "vezes ao ano.\n\n"))
+
+# 6.3. Histograma da Distribuição do Giro de Estoque
+print("Gerando o gráfico da distribuição do Giro de Estoque...")
+grafico_dist_giro <- ggplot(data.frame(Giro = giro_estoque_mc), aes(x = Giro)) +
+  geom_histogram(bins = 30, fill = "orange", color = "black", alpha = 0.7) +
+  geom_vline(aes(xintercept = mean(Giro)), color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribuição do Giro de Estoque por Simulação",
+    subtitle = paste0("Média (linha vermelha) = ", round(mean(giro_estoque_mc), 2), " giros em ", dias_simulados, " dias"),
+    x = "Giro de Estoque",
+    y = "Frequência (Nº de Simulações)"
+  ) +
+  theme_minimal()
+
+print(grafico_dist_giro)
+
+```
+
+
+
+## 4. Referências
+
+[1] Hillier, F. S., & Lieberman, G. J. (2015). *Introduction to Operations Research*. 10th ed. McGraw-Hill Education.
+
+[2] Banks, J., Carson, J. S., Nelson, B. L., & Nicol, D. M. (2010). *Discrete-Event System Simulation*. 5th ed. Pearson Education.
+
+[3] Nahmias, S. (2009). *Production and Operations Analysis*. 6th ed. McGraw-Hill/Irwin.
+
+[4] Silver, E. A., Pyke, D. F., & Peterson, R. (1998). *Inventory Management and Production Planning and Scheduling*. 3rd ed. John Wiley & Sons.
+
+[5] Gross, D., & Harris, C. M. (1998). *Fundamentals of Queueing Theory*. 3rd ed. John Wiley & Sons.
+
+[6] Ross, S. M. (2013). *Simulation*. 5th ed. Academic Press.
+
+[7] Ross, S. M. (2014). *Introduction to Probability Models*. 11th ed. Academic Press.
+
+
