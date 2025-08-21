@@ -1,5 +1,5 @@
 ---
-title: "Métodos de Regressão"
+title: "Métodos Alternativos de Regressão Linear no R"
 format: html
 lang: "pt-BR"
 editor: source
@@ -258,6 +258,8 @@ abline(a=b[1],b=b[2],lwd=2,col="red")
 Analisando o modelo:
 
 ```{r}
+#| fig-align: "center"
+#| code-fold: true
 par(mfrow=c(1,2),mar=c(4.1,4.1,1,1))
 resid <- dados.1$Caro - b[1] - b[2]*dados.1$Barato
 EQM <- mean(resid^2)
@@ -396,6 +398,7 @@ abline(a=b[1],b=b[2],lwd=2,col="red")
 Analisando o modelo:
 
 ```{r}
+#| code-fold: true
 par(mfrow=c(1,2),mar=c(4.1,4.1,1,1))
 resid <- dados.1$Caro - b[1] - b[2]*dados.1$Barato
 EQM <- mean(resid^2)
