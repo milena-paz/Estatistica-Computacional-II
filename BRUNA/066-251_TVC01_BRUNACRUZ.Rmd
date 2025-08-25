@@ -1,0 +1,166 @@
+---
+title: "066-251_TVC01_BRUNACRUZ"
+author: "Bruna Cruz"
+date: "2025-08-25"
+output: html_document
+---
+
+### Exercicio A.1) Algoritmo pelo Método da Transformação Inversa
+### A.1) Algoritmo pelo Método da Transformação Inversa
+
+O Método da Transformação Inversa baseia-se em encontrar a função inversa da Função de Distribuição Acumulada (FDA), $F^{-1}(u)$, onde $u$ é uma variável aleatória com distribuição Uniforme(0,1).
+
+**Passo 1: Igualar a FDA a u**
+
+O primeiro passo é igualar a FDA, $F(x)$, a uma variável aleatória $u \sim U(0,1)$:
+
+$$u = \frac{x^2 + x}{2}$$
+
+**Passo 2: Isolar x**
+
+Agora, precisamos resolver a equação para $x$ em função de $u$. Rearranjando os termos, obtemos uma equação quadrática na forma $ax^2 + bx + c = 0$:
+
+$$x^2 + x - 2u = 0$$
+
+Nesta equação, os coeficientes são $a=1$, $b=1$ e $c=-2u$.
+
+**Passo 3: Aplicar a Fórmula Quadrática**
+
+Utilizamos a fórmula de Bhaskara, $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$, para encontrar as raízes:
+
+$$
+x = \frac{-1 \pm \sqrt{1^2 - 4(1)(-2u)}}{2(1)} = \frac{-1 \pm \sqrt{1 + 8u}}{2}
+$$
+
+**Passo 4: Escolher a Raiz Válida**
+
+Como o suporte da variável aleatória $X$ é o intervalo $[0, 1]$, o valor de $x$ deve ser não negativo. A raiz com o sinal negativo, $\frac{-1 - \sqrt{1 + 8u}}{2}$, resultaria sempre em um valor negativo. Portanto, devemos escolher a raiz com o sinal positivo:
+
+$$
+x = F^{-1}(u) = \frac{\sqrt{1 + 8u} - 1}{2}
+$$
+
+Esta é a função da transformada inversa que usaremos para gerar os números aleatórios.
+
+
+
+### A.2) Geração de 1000 números e Teste de Kolmogorov-Smirnov
+```{r}
+# Função para gerar números aleatórios pelo Método da Transformação Inversa 
+gerador_distribuicao_x <- function(n) { 
+  # Gera n números de uma Uniforme(0,1)
+  u <- runif(n)         
+  # Aplica a transformada inversa
+  x <- (sqrt(1 + 8 * u) - 1) / 2
+  return(x) } 
+ set.seed(13)
+ # Gera 1000 números aleatórios
+amostra_x <- gerador_distribuicao_x(1000) 
+# Função de Distribuição Acumulada (FDA) teórica 
+fda_teorica_x <- function(x) { return((x^2 + x) / 2) } 
+# Realiza o Teste de Kolmogorov-Smirnov
+# Compara a amostra gerada com a FDA teórica
+teste_ks <- ks.test(amostra_x, fda_teorica_x)
+# Exibe o resultado do teste
+print(teste_ks) 
+
+```
+
+Conclusão:
+O teste de Kolmogorov-Smirnov compara a distribuição empírica da amostra gerada com a distribuição teórica. O resultado do teste apresenta um p-valor alto (geralmente > 0.05). Isso significa que não temos evidências para rejeitar a hipótese nula de que os dados seguem a distribuição especificada. Portanto, podemos concluir que o gerador de números aleatórios é de boa qualidade e os valores gerados aderem bem à distribuição teórica.
+
+### A.3) Média da Amostra vs. Esperança Teórica
+```{r}
+# 1. Calcula a média da amostra gerada 
+media_amostral <- mean(amostra_x)
+cat("Média da amostra gerada:", media_amostral, "\n")
+# 2. Calcula o valor teórico (Esperança) 
+# E[X] = integral de 0 a 1 de x * f(x) dx
+# f(x) = F'(x) = (2x + 1) / 2 = x + 0.5
+# E[X] = integral de 0 a 1 de x * (x + 0.5) dx = integral de x^2 + 0.5x dx
+# E[X] = [x^3/3 + 0.5x^2/2] de 0 a 1 = 1/3 + 0.25 = 7/12
+esperanca_teorica <- 7/12 
+cat("Esperança teórica (valor exato):", esperanca_teorica, "\n")
+```
+
+Conclusão:
+A média amostral calculada a partir dos 1000 valores gerados é um valor muito próximo da esperança (valor teórico) da variável aleatória X. Essa proximidade é esperada pela Lei dos Grandes Números, que afirma que a média de uma amostra grande tende a se aproximar da média da população (o valor esperado). Isso reforça a qualidade do gerador.
+
+### A.4) Cálculo de Probabilidade P(X > 0.2)
+```{r}
+ prob_acumulada <- function(x) { # A função só é válida para x entre 0 e 1 
+   ifelse(x < 0, 0, ifelse(x > 1, 1, (x^2 + x) / 2)) }
+# Utiliza a função para calcular P(X > 0.2) 
+# P(X > 0.2) = 1 - P(X <= 0.2) 
+probabilidade <- 1 - prob_acumulada(0.2)
+cat("O valor de P(X > 0.2) é:", probabilidade, "\n")
+```
+
+Conclusão:
+A função prob_acumulada foi criada para representar a FDA F(x). Para calcular P(X > 0.2), usamos a propriedade do complementar, 1 - P(X ≤ 0.2). O resultado 0.88 é o valor exato dessa probabilidade, calculado diretamente a partir da função de distribuição teórica.
+
+###  B.5) e B.6) Gerador Beta e Estatísticas da Amostra
+
+```{r}
+# Função para gerar n números da distribuição Beta(alfa, beta)
+gerador_beta <- function(n, alfa, beta) { # Vetor para armazenar os resultados
+  resultado <- numeric(n) 
+# Contador para os números gerados
+  contador <- 0 
+  while (contador < n) { 
+# Gera dois números de uma Uniforme(0,1)
+  u <- runif(1) 
+  v <- runif(1)
+  # Calcula o termo de condição
+  condicao <- u^(1/alfa) + v^(1/beta)
+  # Testa a condição de aceitação
+  if (condicao <= 1) { contador <- contador + 1
+  # Calcula o valor da variável Beta
+  resultado[contador] <- u^(1/alfa) / condicao } }
+  return(resultado) }
+# Parâmetros da distribuição 
+alfa <- 2.1
+beta <- 6.8
+set.seed(13)
+# Gera uma sequência de 1000 números
+amostra_beta <- gerador_beta(1000, alfa, beta) 
+# Calcula a média da amostra gerada
+media_beta <- mean(amostra_beta) 
+cat("Média da amostra Beta gerada:", media_beta, "\n")
+# Calcula o desvio padrão da amostra gerada 
+desvio_padrao_beta <- sd(amostra_beta) 
+cat("Desvio padrão da amostra Beta gerada:", desvio_padrao_beta, "\n")
+```
+
+Conclusão:
+O código implementa o método de aceitação-rejeição descrito para gerar variáveis Beta. Foram gerados 1000 valores com os parâmetros α = 2.1 e β = 6.8. A média e o desvio padrão da amostra foram calculados. Esses valores amostrais devem ser próximos dos valores teóricos da distribuição Beta(E[X] = α / (α + β) e Var(X) = αβ / [(α+β)²(α+β+1)]), o que indica a correção da implementação.
+
+### B.7: Histograma de Densidade vs. Função de Densidade Teórica
+```{r}
+ hist(amostra_beta, probability = TRUE, main = "Histograma de Densidade vs. FDP Teórica Beta", xlab = "Valores", ylab = "Densidade", col = "#E69F00",  border = "white", breaks = 20)
+# Adiciona a curva da função de densidade teórica
+(dbeta)
+curve(dbeta(x, shape1 = 2.1, shape2 = 6.8), add = TRUE, col = "black", lwd = 2)
+# Adiciona uma legenda 
+legend("topright", legend = c("Densidade da Amostra", "FDP Teórica Beta(2.1, 6.8)"), col = c("#E69F00", "black"), lwd = c(NA, 2), pch = c(15, NA))
+```
+
+Conclusão:
+O histograma de densidade dos valores gerados se ajusta muito bem à curva da função de densidade de probabilidade (fdp) teórica da distribuição Beta(2.1, 6.8). A forma do histograma (sua assimetria à direita e seu pico) segue o contorno da linha preta, que representa a distribuição exata. Essa sobreposição gráfica é uma forte evidência visual de que o gerador construído é de alta qualidade e produz números que, de fato, seguem a distribuição Beta desejada.
+
+###  B.8: Alternativa com rbeta()
+```{r}
+# Parâmetros da distribuição 
+alfa <- 2.1 
+beta <- 6.8 
+ set.seed(13)
+ amostra_beta_eficiente <- rbeta(1000, shape1 = alfa, shape2 = beta)
+ # Mostra os primeiros valores gerados 
+ cat("Primeiros 6 valores gerados com rbeta():\n") 
+ print(head(amostra_beta_eficiente))
+```
+
+O algoritmo implementado na questão B.5 é um método de aceitação-rejeição. Sua principal desvantagem é o custo computacional: ele gera dois números aleatórios (u e v) e realiza vários cálculos a cada iteração, mas o valor só é "aceito" se a condição U^(1/α) + V^(1/β) ≤ 1 for satisfeita. Se não for, os números são descartados e o processo recomeça. Isso significa que, para gerar 1000 números, o loop pode rodar muito mais do que 1000 vezes, desperdiçando ciclos de processamento.
+A alternativa, usando a função rbeta(), diminuiria drasticamente o custo computacional. As funções nativas do R, como rbeta, são implementadas em linguagens de baixo nível (como C ou Fortran) e utilizam algoritmos muito mais sofisticados e otimizados para a geração de variáveis aleatórias. Elas são vetoriais e não dependem de loops em R (que são inerentemente lentos), resultando em uma execução quase instantânea e muito mais eficiente.
+
+
