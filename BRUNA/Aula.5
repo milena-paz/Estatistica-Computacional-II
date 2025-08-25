@@ -1,0 +1,55 @@
+set.seed(666)
+
+gera <- function(){
+  contador <- 0  
+  S <- 2
+  while(S > 1){
+    contador <- contador + 1 
+    U <- runif(2)
+    V <- 2 * U - 1
+    S <- sum(V^2)
+  }
+  Z <- sqrt(-2 * log(S) / S) * V
+  return(c(Z, contador))
+}
+
+# Replicando 100 vezes a função
+x <- replicate(100, gera())
+
+# x é uma matriz: 3 linhas (z1, z2, contador) x 100 colunas
+
+# Média do número de interações (linha 3)
+mean(x[3, ])
+hist(x[1, ], 
+     main = "Histograma de X1", 
+     xlab = "x1", 
+     col = "blue", 
+     border = "white")
+
+# Histograma para z2
+hist(x[2, ], 
+     main = "Histograma de X2", 
+     xlab = "x2", 
+     col = "yellow", 
+     border = "white")
+
+qqnorm(Z)
+
+set.seed(666)
+amostra <- rexp(100)
+qqnorm(amostra)
+qqline(amostra)
+amostra2 <- rcauchy(100)
+qqnorm(amostra2)
+qqline(amostra2)
+amostra3 <- rt (100, df=3)
+qqnorm(amostra3)
+qqline(amostra3)
+X <- rnorm(10)
+rank(X)
+X[rank(X)]
+order(X)
+sort(X)
+ry <- rank(x)/length(x)
+ry
+plot(x.q.teric)

@@ -1,0 +1,155 @@
+---
+title: "Atividade nº 3 – Integração Monte Carlo"
+author: "Bruna Cruz"
+date: "28 de junho de 2025"
+output: html_document
+---
+
+```{r configuracao, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### 1. simulação para aproximar as integrais
+
+Para aproximar uma integral $\int_a^b f(x) dx$ usando simulação Monte Carlo, podemos usar a fórmula:
+
+$\int_a^b f(x) dx \approx (b-a) \frac{1}{N} \sum_{i=1}^N f(U_i)$
+
+onde $U_i$ são números aleatórios uniformemente distribuídos entre $a$ e $b$. Neste caso, $a=0$ e $b=1$, então a fórmula se simplifica para $\frac{1}{N} \sum_{i=1}^N f(U_i)$.
+
+```{r exercicio1, results="hide"}
+# Número de simulações
+N_simulacoes <- 100000
+
+# a. Integral de e^x de 0 a 1
+# Função: f(x) = exp(x)
+# Resposta exata: e^1 - e^0 = e - 1 approx 1.718282
+
+set.seed(666)
+u_a <- runif(N_simulacoes)
+f_a <- exp(u_a)
+estimativa_a <- mean(f_a)
+erro_a <- abs(estimativa_a - (exp(1) - 1))
+
+# b. Integral de x^2 de 0 a 1
+# Função: f(x) = x^2
+# Resposta exata: [x^3/3]_0^1 = 1/3 approx 0.333333
+
+
+u_b <- runif(N_simulacoes)
+f_b <- u_b^2
+estimativa_b <- mean(f_b)
+erro_b <- abs(estimativa_b - (1/3))
+
+# c. Integral de sin(pi*x) de 0 a 1
+# Função: f(x) = sin(pi*x)
+# Resposta exata: [-cos(pi*x)/pi]_0^1 = (-cos(pi)/pi) - (-cos(0)/pi) = (1/pi) - (-1/pi) = 2/pi approx 0.63662
+
+
+u_c <- runif(N_simulacoes)
+f_c <- sin(pi * u_c)
+estimativa_c <- mean(f_c)
+erro_c <- abs(estimativa_c - (2/pi))
+
+# d. Integral de sqrt(1-x^2) de 0 a 1
+# Função: f(x) = sqrt(1-x^2)
+# Resposta exata: Área de um quarto de círculo de raio 1 = pi/4 approx 0.785398
+
+u_d <- runif(N_simulacoes)
+f_d <- sqrt(1 - u_d^2)
+estimativa_d <- mean(f_d)
+erro_d <- abs(estimativa_d - (pi/4))
+
+# e. Integral de 1/(1+x^2) de 0 a 1
+# Função: f(x) = 1/(1+x^2)
+# Resposta exata: [arctan(x)]_0^1 = arctan(1) - arctan(0) = pi/4 - 0 = pi/4 approx 0.785398
+
+
+u_e <- runif(N_simulacoes)
+f_e <- 1 / (1 + u_e^2)
+estimativa_e <- mean(f_e)
+erro_e <- abs(estimativa_e - (pi/4))
+
+```
+
+| Integral | Resposta Exata | Estimativa Monte Carlo | Erro Absoluto |
+|---|---|---|---|
+| $\int_0^1 e^x dx$ | `r round(exp(1) - 1, 6)` | `r round(estimativa_a, 6)` | `r round(erro_a, 6)` |
+| $\int_0^1 x^2 dx$ | `r round(1/3, 6)` | `r round(estimativa_b, 6)` | `r round(erro_b, 6)` |
+| $\int_0^1 \sin(\pi x) dx$ | `r round(2/pi, 6)` | `r round(estimativa_c, 6)` | `r round(erro_c, 6)` |
+| $\int_0^1 \sqrt{1-x^2} dx$ | `r round(pi/4, 6)` | `r round(estimativa_d, 6)` | `r round(erro_d, 6)` |
+| $\int_0^1 \frac{1}{1+x^2} dx$ | `r round(pi/4, 6)` | `r round(estimativa_e, 6)` | `r round(erro_e, 6)` |
+
+As estimativas Monte Carlo se aproximam bem das respostas exatas, e o erro absoluto diminui com o aumento do número de simulações.
+
+### 2.simulação para aproximar o valor da $E[U^3]$
+
+A esperança de uma função de uma variável aleatória $E[g(U)]$ pode ser aproximada por Monte Carlo como $\frac{1}{N} \sum_{i=1}^N g(U_i)$, onde $U_i$ são amostras da distribuição de $U$. Neste caso, $g(U) = U^3$ e $U \sim U(0,1)$.
+
+A resposta exata para $E[U^3]$ quando $U \sim U(0,1)$ é $\int_0^1 u^3 \cdot 1 du = [u^4/4]_0^1 = 1/4 = 0.25$.
+
+```{r exercicio2, results="hide"}
+# Número de simulações
+N_simulacoes_e2 <- 100000
+
+
+u_e2 <- runif(N_simulacoes_e2)
+g_u_e2 <- u_e2^3
+estimativa_e2 <- mean(g_u_e2)
+erro_e2 <- abs(estimativa_e2 - 0.25)
+
+```
+
+Resposta Exata para $E[U^3]$: `r 0.25`
+Estimativa Monte Carlo para $E[U^3]$: `r round(estimativa_e2, 6)`
+Erro Absoluto: `r round(erro_e2, 6)`
+
+A estimativa Monte Carlo está muito próxima do valor exato, o que demonstra a eficácia do método para aproximar esperanças.
+
+### 3.Defina:N é igual à quantidade de números
+
+$N = \min\{n: \sum_{i=1}^n U_i > 1\}$
+
+```{r exercicio3, results="hide"}
+# Função para gerar um único valor de N
+gerar_N <- function() {
+  soma <- 0
+  contador <- 0
+  while (soma <= 1) {
+    soma <- soma + runif(1)
+    contador <- contador + 1
+  }
+  return(contador)
+}
+set.seed(666)
+# a. Gerar 100 valores de N
+
+valores_N_100 <- replicate(100, gerar_N())
+estimativa_N_100 <- mean(valores_N_100)
+
+# b. Gerar 1.000 valores de N
+
+valores_N_1000 <- replicate(1000, gerar_N())
+estimativa_N_1000 <- mean(valores_N_1000)
+
+# c. Gerar 10.000 valores de N
+
+valores_N_10000 <- replicate(10000, gerar_N())
+estimativa_N_10000 <- mean(valores_N_10000)
+
+# d. Valor exato de E[N]
+valor_exato_N <- exp(1)
+
+```
+| Número de Simulações | Estimativa de $E[N]$ |
+|---|---|
+| 100 | `r round(estimativa_N_100, 6)` |
+| 1.000 | `r round(estimativa_N_1000, 6)` |
+| 10.000 | `r round(estimativa_N_10000, 6)` |
+
+Valor Exato de $E[N]$: `r round(valor_exato_N, 6)`
+
+Observamos que, à medida que o número de simulações aumenta, a estimativa de $E[N]$ se aproxima do valor exato de $e$. Isso demonstra a convergência do método Monte Carlo para a esperança de uma variável aleatória.
+
+
